@@ -1,0 +1,7 @@
+model,f1_vix25,bear_days,proxy_days
+M1_price_hmm,0.6,7,3
+M2_price_pca_hmm,0.6,7,3
+M3_sent_hmm,0.0,24,3
+M4_sent_pca_hmm,0.0,16,3
+M5_vader_hmm,0.0,31,3
+M6_vader_pca_hmm,0.0,19,3

@@ -33,6 +33,45 @@ The original research proposal lives at [`docs/RESEARCH_PROPOSAL.md`](docs/RESEA
 
 ![SVB transition timing](outputs/figures/transition_lead_time_svb.png)
 
+### Statistical significance — nothing survives
+
+`scripts/run_stats.py` audits the baseline, reruns every model **walk-forward**
+(refit each month on prior data only), and tests Sharpe differences three ways
+(JK-Memmel z, paired block bootstrap, DM/HAC) with Holm correction.
+
+**Baseline audit (is the price-only HMM legit?):**
+
+- M1/M2 inputs are exactly `[SPY_ret, realized_vol, VIX_close]` — asserted, no
+  sentiment possible; an independent recomputation of the switch reproduces the
+  pipeline returns to **0.0 max abs difference**; SPY 2023 total return from our
+  data is +26.7%, matching reality.
+- **But the in-sample M1/M2 Switch made exactly ONE trade in 2023**: bear
+  January–early-March, bull the rest of the year. The IS Sharpe of 1.89 is one
+  regime assignment, not trading skill.
+
+**Walk-forward (out-of-sample) Switch Sharpe — IS → OOS:**
+
+| Model | IS | OOS |
+|---|---|---|
+| M1/M2 Price HMM | 1.89 | **1.65** (below B&H 1.79) |
+| M3 FinBERT HMM | 2.11 | 2.23 |
+| M4 FinBERT PCA | 2.10 | 1.94 |
+| M5 VADER HMM | 1.91 | 1.89 |
+| M6 VADER PCA | 2.02 | 1.87 |
+| Buy & Hold SPY | 1.79 | 1.79 |
+
+**Significance tests (250 daily obs, single year):** every pairwise Sharpe
+difference is statistically indistinguishable from zero. The strongest case,
+M3 vs M5 OOS, has a bootstrap p of 0.086 (JK-Memmel p = 0.16; Holm-corrected
+0.84); M3 vs B&H OOS p = 0.14/0.24. Stress-flag quality vs a VIX>25 proxy
+(only 3 such days in 2023): price-HMM F1 = 0.6, all sentiment models F1 = 0.0,
+McNemar p = 0.25.
+
+**Verdict:** the point estimates favor FinBERT-sentiment switching over
+price-only and over buy-and-hold, and the ordering survives walk-forward
+refitting — but with 250 observations nothing is statistically significant.
+Treat the Sharpe rankings as a directional PoC result, not evidence of alpha.
+
 ### Reading the table — no sugar coating
 
 - **Sentiment Switch strategies deliver the best net Sharpe (2.11 / 2.10 vs 1.89
