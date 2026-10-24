@@ -33,6 +33,8 @@ The original research proposal lives at [`docs/RESEARCH_PROPOSAL.md`](docs/RESEA
 
 ![SVB transition timing](outputs/figures/transition_lead_time_svb.png)
 
+![Sentiment vs baseline comparison](outputs/figures/sentiment_vs_baseline_comparison.png)
+
 ### Statistical significance — nothing survives
 
 `scripts/run_stats.py` audits the baseline, reruns every model **walk-forward**
