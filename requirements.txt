@@ -11,4 +11,5 @@ yfinance>=0.2.40
 requests
 torch>=2.1
 transformers>=4.40
+vaderSentiment>=3.3
 pymupdf

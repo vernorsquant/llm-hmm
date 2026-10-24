@@ -17,12 +17,17 @@ MARKET_FEATURES = ["SPY_ret", "realized_vol", "VIX_close"]
 # gaps, which made the HMM split states on news-coverage presence instead of
 # market regime (documented in README). It is still computed and reported.
 SENTIMENT_FEATURES = ["sent_w", "sent_w_ema5", "sent_disp"]
+# VADER baseline: identical architecture, lexicon sentiment instead of FinBERT
+# (`_v` suffix columns built by the pipeline from vader_scoring output).
+SENTIMENT_FEATURES_VADER = ["sent_w_v", "sent_w_ema5_v", "sent_disp_v"]
 
 FEATURE_SETS = {
     "M1_price_hmm": (MARKET_FEATURES, False),
     "M2_price_pca_hmm": (MARKET_FEATURES, True),
     "M3_sent_hmm": (MARKET_FEATURES + SENTIMENT_FEATURES, False),
     "M4_sent_pca_hmm": (MARKET_FEATURES + SENTIMENT_FEATURES, True),
+    "M5_vader_hmm": (MARKET_FEATURES + SENTIMENT_FEATURES_VADER, False),
+    "M6_vader_pca_hmm": (MARKET_FEATURES + SENTIMENT_FEATURES_VADER, True),
 }
 
 def _fit_one(feat, cols, use_pca, random_state):

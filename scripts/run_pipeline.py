@@ -32,7 +32,8 @@ from hmm_sentiment.plots import (
     plot_regime_comparison,
     plot_transition_lead_time,
 )
-from hmm_sentiment.regime_models import fit_regime_models
+from hmm_sentiment.regime_models import FEATURE_SETS, fit_regime_models
+from hmm_sentiment.vader_scoring import vader_scores
 
 STEPS_LOG = f"{TABLE_DIR}/pipeline_log.json"
 
@@ -55,10 +56,22 @@ def build_features():
     log_step("LLM importance rating")
     scored["importance"] = rate_importance(scored["headline"].tolist())
 
+    log_step("VADER scoring (baseline)")
+    v_scored = vader_scores(news)
+    v_scored["importance"] = rate_importance(v_scored["headline"].tolist())  # all cached
+
     log_step("close-safeguard mapping + daily features")
     merged = map_articles_to_trading_days(scored, market.index)
     daily_news = build_daily_news_features(merged, market.index)
+
+    v_merged = map_articles_to_trading_days(v_scored, market.index)
+    v_daily = build_daily_news_features(v_merged, market.index)
+    v_daily = v_daily.rename(
+        columns={"sent_w": "sent_w_v", "sent_w_ema5": "sent_w_ema5_v", "sent_disp": "sent_disp_v"}
+    )
+
     feat = market.join(daily_news, how="left")
+    feat = feat.join(v_daily[["sent_w_v", "sent_w_ema5_v", "sent_disp_v"]], how="left")
     log_step(f"features rows={len(feat)} cols={list(feat.columns)}")
     return market, feat, merged, scored
 
@@ -128,8 +141,9 @@ def run_all():
     )
     metrics.to_csv(f"{TABLE_DIR}/metrics_summary.csv", index=False)
 
-    # diagnostics: transition matrices + regime stats
+    # diagnostics: transition matrices + regime stats + cross-model agreement
     diag = {}
+    pb = {n: res["posterior_bull"] for n, res in models.items()}
     for name, res in models.items():
         diag[name] = {
             "transmat": res["model"].transmat_.tolist(),
@@ -140,6 +154,9 @@ def run_all():
             "lead_carried_in": leads[name]["carried_in"],
             "bear_days_in_2023": int((states_by_model[name] == 1).sum()),
         }
+    for a, b in [("M3_sent_hmm", "M5_vader_hmm"), ("M4_sent_pca_hmm", "M6_vader_pca_hmm"), ("M1_price_hmm", "M3_sent_hmm")]:
+        if a in pb and b in pb:
+            diag[f"posterior_corr::{a}::{b}"] = round(float(pb[a].corr(pb[b])), 4)
     with open(f"{TABLE_DIR}/model_diagnostics.json", "w") as f:
         json.dump(diag, f, indent=2)
 

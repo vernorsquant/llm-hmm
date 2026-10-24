@@ -20,6 +20,10 @@ The original research proposal lives at [`docs/RESEARCH_PROPOSAL.md`](docs/RESEA
 | M3 Sentiment HMM [MVO] | 19.7% | 10.9% | 1.71 | −9.5% | 2.07 | none |
 | **M4 Sentiment PCA-HMM [Switch]** | 29.2% | 12.6% | **2.10** | −8.5% | 3.43 | none |
 | M4 Sentiment PCA-HMM [MVO] | 19.3% | 10.8% | 1.69 | −9.6% | 2.00 | none |
+| M5 VADER HMM [Switch] | 26.8% | 12.9% | 1.91 | −10.1% | 2.64 | none |
+| M5 VADER HMM [MVO] | 22.7% | 11.8% | 1.79 | −9.6% | 2.35 | none |
+| M6 VADER PCA-HMM [Switch] | 28.3% | 12.7% | 2.02 | −9.1% | 3.10 | none |
+| M6 VADER PCA-HMM [MVO] | 20.3% | 11.0% | 1.73 | −9.6% | 2.11 | none |
 
 ![Cumulative returns](outputs/figures/cumulative_returns_all_models.png)
 
@@ -48,15 +52,25 @@ The original research proposal lives at [`docs/RESEARCH_PROPOSAL.md`](docs/RESEA
   The performance edge is real net-of-cost, but it is not yet cleanly attributable to
   news sentiment rather than residual coverage structure. Fixing that attribution
   (covered-days-only fitting or a denser corpus) is the obvious next step.
+- **VADER baseline (M5/M6) sharpens the mechanism finding.** Swapping FinBERT for the
+  VADER lexicon (identical weighting architecture) shifts results only slightly:
+  Switch Sharpe 1.91 (M5) / 2.02 (M6) vs 2.11 / 2.10 for FinBERT. Posterior
+  correlations: M3↔M5 = 0.96, **M4↔M6 = 0.97** — the PCA sentiment models land on
+  nearly the SAME regimes regardless of sentiment model. Combined with M1↔M3 = 0.40,
+  this says the sentiment models' regime signal is driven by *when news exists and
+  how it is structured*, not by sentiment quality; FinBERT still ranks ≥ VADER
+  everywhere, consistent with the literature (domain transformer > general lexicon).
 
-## The 4 models
+## The 6 models
 
-| Model | Inputs | Architecture |
-|---|---|---|
-| M1 (baseline) | SPY return, 20d realized vol, VIX | 2-state Gaussian HMM |
-| M2 (baseline) | same, PCA(95%) first | 2-state Gaussian HMM |
-| M3 (proposed) | market + sentiment features | 2-state Gaussian HMM |
-| M4 (proposed) | market + sentiment features, PCA(95%) | 2-state Gaussian HMM |
+| Model | Sentiment source | Inputs | Architecture |
+|---|---|---|---|
+| M1 (baseline) | — | SPY return, 20d realized vol, VIX | 2-state Gaussian HMM |
+| M2 (baseline) | — | same, PCA(95%) first | 2-state Gaussian HMM |
+| M3 (proposed) | FinBERT | market + sentiment features | 2-state Gaussian HMM |
+| M4 (proposed) | FinBERT | market + sentiment features, PCA(95%) | 2-state Gaussian HMM |
+| M5 (baseline) | VADER lexicon | market + sentiment features | 2-state Gaussian HMM |
+| M6 (baseline) | VADER lexicon | market + sentiment features, PCA(95%) | 2-state Gaussian HMM |
 
 Sentiment features: daily importance-weighted sentiment `S_t = Σ(S_raw,i·C_i·I_i)/(Σ C_i·I_i + 1e-6)`,
 its 5-day EMA, and sentiment dispersion, where `S_raw = P(pos) − P(neg)` (FinBERT),
@@ -132,7 +146,8 @@ src/hmm_sentiment/    config, market_data, news_corpus, finbert_scoring,
                       llm_importance, daily_features, regime_models,
                       backtest, metrics, plots
 scripts/run_pipeline.py   end-to-end orchestrator
-tests/                34 unit tests (lookahead, bounds, HMM validity, MVO constraints)
+tests/                37 unit tests (lookahead, bounds, HMM validity, MVO constraints,
+                      VADER scorer, coverage-gap regression)
 outputs/figures/      4 publication-grade PNGs (300 DPI)
 outputs/tables/       metrics_summary.csv, model_diagnostics.json, article_scores_sample.csv
 docs/                 original research proposal

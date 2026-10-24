@@ -12,6 +12,14 @@ with the correct w17182).
 | `nystrup_2017_dynamic_portfolio_hmm.pdf` | *Dynamic Portfolio Optimization Across Hidden Market Regimes* (Nystrup, Madsen & Lindström, Quantitative Finance) | Regime-based allocation baseline |
 | `plos_one_2025_pca_hmm_sentiment.pdf` | *Momentum, volume and investor sentiment study for U.S. technology sector stocks — a hidden Markov model based principal component analysis* (Li, PLOS ONE 2025, e0331658) | Nearest-neighbor work (PCA-HMM + sentiment), differentiated in README |
 
+Cited without PDF (both public mirrors dead at fetch time; ICWSM/AAAI paywall):
+**VADER — Hutto & Gilbert (2014), "VADER: A Parsimonious Rule-based Model for
+Sentiment Analysis of Social Media Text", ICWSM 8(1), DOI 10.1609/icwsm.v8i1.14550.**
+Used as the lexicon-sentiment baseline (M5/M6). Its published gold-standard
+correlations on social-media benchmarks (compound score) motivate the same
+simplex/probability treatment we apply; our usage follows the reference
+implementation `vaderSentiment` v3.3.2.
+
 ## Extracted baseline numbers our results are checked against
 
 ### 1. FinBERT sentiment quality (Araci 2019, Table: Financial PhraseBank)

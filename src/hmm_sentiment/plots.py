@@ -15,12 +15,16 @@ MODEL_LABELS = {
     "M2_price_pca_hmm": "Model 2: Price PCA-HMM",
     "M3_sent_hmm": "Model 3: Sentiment HMM",
     "M4_sent_pca_hmm": "Model 4: Sentiment PCA-HMM",
+    "M5_vader_hmm": "Model 5: VADER HMM",
+    "M6_vader_pca_hmm": "Model 6: VADER PCA-HMM",
 }
 COLORS = {
     "M1_price_hmm": "#1f77b4",
     "M2_price_pca_hmm": "#2ca02c",
     "M3_sent_hmm": "#d62728",
     "M4_sent_pca_hmm": "#9467bd",
+    "M5_vader_hmm": "#ff7f0e",
+    "M6_vader_pca_hmm": "#8c564b",
 }
 
 
@@ -45,7 +49,10 @@ def plot_cumulative_returns(curves, spy_bh, path=None):
 
 def plot_regime_comparison(spy_price, model_states, path=None):
     """model_states: {model: states Series} with 0=bull, 1=bear (values in {0,1})."""
-    fig, axes = plt.subplots(2, 2, figsize=(14, 8), sharex=True)
+    n = len(model_states)
+    ncols = 3 if n > 4 else 2
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(6.5 * ncols, 4 * nrows), sharex=True, squeeze=False)
     for ax, (name, states) in zip(axes.ravel(), model_states.items()):
         ax.plot(spy_price.index, spy_price.values, lw=0.9, color="black")
         bear = states.values == 1
@@ -57,6 +64,8 @@ def plot_regime_comparison(spy_price, model_states, path=None):
         ax.grid(alpha=0.3)
         ax.legend(fontsize=7, loc="upper left")
         ax.set_ylabel("SPY")
+    for ax in axes.ravel()[n:]:
+        ax.axis("off")
     fig.suptitle("Regime Classification: SPY with Bear-State Shading (2023)")
     fig.tight_layout(rect=(0, 0, 1, 0.97))
     out = path or f"{FIG_DIR}/regime_classification_comparison.png"
