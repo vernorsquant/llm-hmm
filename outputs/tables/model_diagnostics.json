@@ -1,0 +1,74 @@
+{
+  "M1_price_hmm": {
+    "transmat": [
+      [
+        0.9937573450787535,
+        0.006242654921246568
+      ],
+      [
+        0.006815909934905014,
+        0.9931840900650949
+      ]
+    ],
+    "converged": true,
+    "pca_explained_variance": 1.0,
+    "lead_days_svb": 17,
+    "lead_entry_date": null,
+    "lead_carried_in": true,
+    "bear_days_in_2023": 65
+  },
+  "M2_price_pca_hmm": {
+    "transmat": [
+      [
+        0.9937578010223865,
+        0.006242198977613367
+      ],
+      [
+        0.006815518105806095,
+        0.993184481894194
+      ]
+    ],
+    "converged": true,
+    "pca_explained_variance": 1.0000000000000002,
+    "lead_days_svb": 17,
+    "lead_entry_date": null,
+    "lead_carried_in": true,
+    "bear_days_in_2023": 65
+  },
+  "M3_sent_hmm": {
+    "transmat": [
+      [
+        0.994949447477445,
+        0.005050552522555064
+      ],
+      [
+        0.004273436297079901,
+        0.99572656370292
+      ]
+    ],
+    "converged": true,
+    "pca_explained_variance": 1.0,
+    "lead_days_svb": null,
+    "lead_entry_date": null,
+    "lead_carried_in": false,
+    "bear_days_in_2023": 15
+  },
+  "M4_sent_pca_hmm": {
+    "transmat": [
+      [
+        0.995033441039301,
+        0.0049665589606990405
+      ],
+      [
+        0.004399344191412231,
+        0.9956006558085878
+      ]
+    ],
+    "converged": true,
+    "pca_explained_variance": 0.9503757848143026,
+    "lead_days_svb": null,
+    "lead_entry_date": null,
+    "lead_carried_in": false,
+    "bear_days_in_2023": 22
+  }
+}

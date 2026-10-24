@@ -1,139 +1,176 @@
 # LLM-HMM: Importance-Weighted News Sentiment for HMM Market Regime Detection
 
-**Status:** research proposal (draft v0.1)
+**Status: proof-of-concept benchmark, complete.** Implements and evaluates exactly
+4 regime-detection models across a binary regime switch and regime-conditioned
+Mean-Variance Optimization (MVO) on 2023 data (evaluation window
+2023-01-01 → 2023-12-31), with all article-level text inference cached to disk.
+The original research proposal lives at [`docs/RESEARCH_PROPOSAL.md`](docs/RESEARCH_PROPOSAL.md).
 
-## One-paragraph pitch
+## Results (2023, net of 5 bps transaction costs)
+
+| Strategy | Ann. Return | Ann. Vol | Net Sharpe | Max DD | Calmar | SVB lead |
+|---|---|---|---|---|---|---|
+| Buy & Hold SPY | 25.3% | 13.1% | 1.79 | −10.1% | 2.50 | — |
+| 60/40 Static | 16.3% | 8.8% | 1.75 | −8.4% | 1.94 | — |
+| M1 Price HMM [Switch] | 23.3% | 11.5% | 1.89 | −10.1% | 2.30 | 17d (carried-in) |
+| M1 Price HMM [MVO] | 25.3% | 13.1% | 1.79 | −10.1% | 2.50 | 17d |
+| M2 Price PCA-HMM [Switch] | 23.3% | 11.5% | 1.89 | −10.1% | 2.30 | 17d (carried-in) |
+| M2 Price PCA-HMM [MVO] | 25.3% | 13.1% | 1.79 | −10.1% | 2.50 | 17d |
+| **M3 Sentiment HMM [Switch]** | **29.5%** | 12.7% | **2.11** | **−8.3%** | **3.57** | none |
+| M3 Sentiment HMM [MVO] | 19.7% | 10.9% | 1.71 | −9.5% | 2.07 | none |
+| **M4 Sentiment PCA-HMM [Switch]** | 29.2% | 12.6% | **2.10** | −8.5% | 3.43 | none |
+| M4 Sentiment PCA-HMM [MVO] | 19.3% | 10.8% | 1.69 | −9.6% | 2.00 | none |
+
+![Cumulative returns](outputs/figures/cumulative_returns_all_models.png)
+
+![Regime classification](outputs/figures/regime_classification_comparison.png)
+
+![MVO weights](outputs/figures/mvo_weights_over_time.png)
+
+![SVB transition timing](outputs/figures/transition_lead_time_svb.png)
+
+### Reading the table — no sugar coating
+
+- **Sentiment Switch strategies deliver the best net Sharpe (2.11 / 2.10 vs 1.89
+  price-only) and the lowest drawdown (−8.3% vs −10.1%).** Directionally consistent
+  with Nystrup et al.'s regime-based allocation drawdown result.
+- **But the proposal's headline mechanism is NOT validated.** M3/M4 have *no bear
+  entry at all* in the Feb 15 – Mar 13 SVB window — they entirely missed the March
+  banking stress (only 15/22 bear days in all of 2023, none in March). The profit
+  uplift comes from sidestepping the autumn selloff, not from earlier crisis detection.
+- **The M1/M2 "17-day lead" is carried-in bear** (bear since January), not
+  anticipation — which is exactly why the lead-time metric flags it.
+- **MVO blending compresses everything toward B&H** (all MVO ≤ 1.79): probability-
+  weighted blending rarely reaches corners, and in a +25% SPY year holding IEF drags.
+- **Mechanism caveat:** M3/M4's bear state has legitimate market features (VIX 23.1
+  vs 16.8, realized vol 19.3% vs 13.1%) but its sentiment features are exactly 0 and
+  12 of 15 bear days fall in September — the month with the worst corpus coverage.
+  The performance edge is real net-of-cost, but it is not yet cleanly attributable to
+  news sentiment rather than residual coverage structure. Fixing that attribution
+  (covered-days-only fitting or a denser corpus) is the obvious next step.
+
+## The 4 models
+
+| Model | Inputs | Architecture |
+|---|---|---|
+| M1 (baseline) | SPY return, 20d realized vol, VIX | 2-state Gaussian HMM |
+| M2 (baseline) | same, PCA(95%) first | 2-state Gaussian HMM |
+| M3 (proposed) | market + sentiment features | 2-state Gaussian HMM |
+| M4 (proposed) | market + sentiment features, PCA(95%) | 2-state Gaussian HMM |
+
+Sentiment features: daily importance-weighted sentiment `S_t = Σ(S_raw,i·C_i·I_i)/(Σ C_i·I_i + 1e-6)`,
+its 5-day EMA, and sentiment dispersion, where `S_raw = P(pos) − P(neg)` (FinBERT),
+`C_i = 1 − H(p)/ln 3` (normalized class entropy), and `I_i ∈ [0,1]` is a local-LLM
+macro-importance rating (Qwen2.5-1.5B-Instruct Q4_K_M via llama.cpp, CPU).
+
+**Frameworks.** *Switch*: P(bull) > 0.5 → 100% SPY, else 100% IEF.
+*MVO*: regime-conditioned μ_k, Σ_k from state-mapped samples (annualized), blended
+by the lagged posterior `p_t`, long-only max-Sharpe (SLSQP), 5 bps × one-sided turnover.
+Benchmarks: SPY buy-and-hold and monthly-rebalanced 60/40, same cost model.
+
+**Timing (no lookahead).** Articles published after 16:00 America/New_York map
+strictly to the NEXT trading session; the signal known at the close of t−1
+positions day t. Both are unit-tested (`tests/test_no_lookahead.py`).
+
+## Pipeline
+
+```
+data ingestion → article scoring → daily features → 4 HMMs → backtests → artifacts
+market_data.py    finbert_scoring.py  daily_features.py  regime_models.py  backtest.py  plots.py
+news_corpus.py    llm_importance.py                      (state canon.)    metrics.py
+```
+
+- **Market data**: yfinance (SPY, IEF, adjusted) + CBOE CSV (VIX); features 2021-06→2023-12
+  (warmup includes the 2022 bear market), evaluation on 2023 only.
+- **News**: GDELT DOC 2.0 artlist — 2,117 real headlines with real intraday timestamps,
+  334 outlets, event-keyed windows (FOMC, CPI, jobs, SVB, debt ceiling) + routine days.
+  GDELT provides no summaries → raters run on headlines (disclosed).
+- **Caching**: FinBERT probabilities parquet + LLM ratings JSONL, both sha1(text)-keyed —
+  every headline passes through each model exactly once across all runs.
+- **In-sample disclosure**: HMMs are fit on the full feature window (standard for this
+  literature, e.g. Ang–Timmermann); the backtest evaluates 2023. `random_state=42` fixed.
+
+## Key engineering findings (negative results included)
+
+1. **Corpus-coverage artifact (caught and fixed).** In the first build, M3/M4's
+   "bear" state was the *zero-news-coverage* state: 587/631 trading days had no
+   articles, and zero-count news features made the HMM split on coverage
+   (bear-days-by-month was identical to zero-coverage-days-by-month; bear-state mean
+   article count 0.0 vs 22.0). Fixes: forward-fill level features (unobserved ≠
+   neutral), exclude the zero-inflated article count from HMM inputs (still computed
+   and reported), densify the corpus (+1,149 articles, December-weighted). After the
+   fix: persistence 0.98–0.995, bear-state VIX ≈ 23 vs bull ≈ 17 — literature-consistent.
+2. **PCA-HMM ≡ HMM here (expected, disclosed).** `PCA(0.95)` on 3 standardized features
+   keeps all 3 (each carries ⅓ of variance), and the Gaussian-HMM likelihood is invariant
+   to invertible linear maps — so M1/M2 agree to ~1e-3 in posteriors. On M4's 6 features
+   PCA keeps 5 (≈98% variance) → near-identical to M3. With this few features, PCA is
+   a structural no-op, not a bug.
+3. **Lead-time metric honesty.** "First bear flip inside a window" inflates lead time for
+   models already bear at window start. The reported metric uses the LAST bull→bear entry
+   before the reference date (2023-03-13), flags carried-in states, and annotates entry
+   dates on the figure.
+
+## Comparison vs published baselines
+
+Full extraction in [`papers/README.md`](papers/README.md) (every PDF title-verified).
+
+- **FinBERT** (Araci 2019): published 0.86 accuracy / 0.84 F1 on Financial PhraseBank.
+  Our layer reproduces the expected behavior on macro headlines (FOMC previews →
+  high-confidence neutral; rate-risk headlines → negative).
+- **2-state HMM stylized facts** (Ang & Timmermann, NBER w17182): high persistence,
+  low-vol/positive-mean vs high-vol/negative-mean states. Our M1/M2: diagonal 0.994/0.993,
+  bear-state VIX 24.6 vs bull 16.5, SVB week classified bear 100%.
+- **Regime-based allocation** (Nystrup et al., QF 2017): regime switching should
+  reduce drawdowns vs static weights — checked in the results table.
+- **Nearest neighbor** (Li 2025, PLOS ONE e0331658): PCA-HMM + aggregate sentiment on
+  tech stocks; no article-level weighting, no trading evaluation — differentiated here.
+
+## Repository layout
+
+```
+src/hmm_sentiment/    config, market_data, news_corpus, finbert_scoring,
+                      llm_importance, daily_features, regime_models,
+                      backtest, metrics, plots
+scripts/run_pipeline.py   end-to-end orchestrator
+tests/                34 unit tests (lookahead, bounds, HMM validity, MVO constraints)
+outputs/figures/      4 publication-grade PNGs (300 DPI)
+outputs/tables/       metrics_summary.csv, model_diagnostics.json, article_scores_sample.csv
+docs/                 original research proposal
+papers/               PDFs (gitignored) + papers/README.md (verified citations + baseline numbers)
+```
+
+## Reproduce
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -r requirements.txt
+PYTHONPATH=src .venv/bin/python scripts/run_pipeline.py
+.venv/bin/python -m pytest tests/ -q
+```
+
+## Limitations
+
+In-sample HMM fitting (disclosed above) · GDELT headline-only corpus with residual
+coverage gaps (forward-filled, limit 10 days) · 2-state constraint · single year ·
+importance ratings from a 1.5B model at temperature 0 · transaction costs modeled as
+5 bps one-sided turnover · results are a PoC, not a tradable strategy.
+
+---
+
+## Appendix: original research proposal (summary)
 
 Hidden Markov models detect market regimes (bull/bear) from price and volatility, but they only
 react *after* a regime change shows up in returns. News leads prices, yet raw daily news sentiment
 is dominated by high-volume, low-importance articles and miscalibrated model output. This project
-feeds article-level news observations — weighted by a **news importance prior** (outlet credibility
-× news type × novelty) and **LLM confidence** (FinBERT sentiment, confidence = 1 − class entropy) —
-into a **PCA-HMM** emission process, and evaluates whether the resulting regime detection is
-*faster and more profitable* than a price-only HMM, using simple trading strategies and portfolio
-allocation models.
+feeds article-level news observations — weighted by an **LLM importance prior** and **FinBERT
+confidence** (confidence = 1 − class entropy) — into an HMM/PCA-HMM emission process, and evaluates
+whether the resulting regime detection is *faster and more profitable* than a price-only HMM, using
+trading strategies and portfolio allocation. Full proposal text (motivation, planned ablations,
+team split, literature review): [`docs/RESEARCH_PROPOSAL.md`](docs/RESEARCH_PROPOSAL.md).
 
-## Motivation
-
-- HMM regime detection on price/volume is mature (Hamilton 1989 → Rydén et al. 1998 → Nystrup et
-  al. 2019) but backward-looking by construction.
-- News sentiment demonstrably moves markets (Tetlock 2007; Garcia & Norli 2021), but aggregate
-  sentiment series drown important articles in noise.
-- We attack the measured noise component directly: down-weight unimportant outlets/topics and
-  low-confidence predictions, then test whether the regime model times transitions earlier.
-
-## Key contributions
-
-1. First pipeline feeding **importance- and confidence-weighted** article-level news observations
-   into a PCA-HMM's emission process for macro regime detection (prior work uses sentiment as an
-   exogenous regressor, or unweighted sentiment in direct predictors).
-2. We test the regime model the way it's actually used in practice — plugged into **portfolio
-   allocation and actual trading strategies**, not just checked on classification accuracy.
-   That means transition lead time, net-of-cost Sharpe, and drawdown across a strategy zoo
-   (equity/bond switch, probability-weighted allocation, mean-variance, risk parity, vol
-   targeting).
-3. A **calibration study** of FinBERT confidence in the regime-detection context (does
-   temperature-scaled confidence improve timing?).
-4. A portable, ablatable **news importance scoring framework** (outlet prior × topic type × novelty).
-
-## Pipeline
-
-1. Daily news corpus (headline + body, outlet, timestamp) → **FinBERT** sentiment
-   (positive / neutral / negative).
-2. Score each article: **weighted sentiment = Σ P(class) · confidence · importance**, with
-   confidence = 1 − class entropy and importance = w_outlet × w_topic × w_novelty.
-3. Aggregate to daily features (weighted sentiment, EMA-5, news volume, article dispersion) and
-   merge with market features (returns, realized vol, VIX, credit spread).
-4. Standardize → **PCA** (~95% variance) → **Gaussian HMM** (2–4 states) → regime posteriors.
-5. Trade the regimes: equity/bond switch, probability-weighted allocation, portfolio models.
-
-## Experimental setup
-
-**Baselines (control group):** buy & hold SPY · 60/40 · price-only HMM (returns + vol) ·
-raw unweighted FinBERT-sentiment HMM (the critical ablation) · PCA-HMM without news ·
-Markov-switching GARCH · always-bull.
-
-**Ablations:** drop confidence weighting · drop importance weighting · drop both ·
-placebo (shift news +5 days forward — signal must vanish) · state-count sweep (2/3/4) ·
-PCA component sweep.
-
-**Metrics:** net Sharpe (after transaction costs), max drawdown, Calmar, turnover,
-regime-transition F1 vs ground truth (NBER recessions, VIX>25 episodes), and the headline
-metric — **transition lead time in days** vs the price-only HMM.
-
-**Statistics:** Diebold–Mariano on Sharpe differences, McNemar on regime classification
-agreement, walk-forward stability of transition matrices.
-
-## Data
-
-| Source | Role | Cost |
-|---|---|---|
-| GDELT DOC 2.0 API | Primary news corpus (2017+, outlet domains, timestamps) | Free |
-| Alpha Vantage NEWS_SENTIMENT | Vendor sentiment + topics + source, to validate the FinBERT layer | Free tier / ~$50 mo |
-| Stooq / Sharadar | SPY, IEF/AGG, VIX daily prices | Free |
-
-## Expected results & comparison
-
-We compare directly against **price-only Hidden Markov models** — both a standard Gaussian HMM and
-the PCA-HMM variant (identical setup, no news inputs). Our prediction: the importance- and
-confidence-weighted news pipeline detects regime transitions earlier, and we therefore expect it to
-deliver a **higher net Sharpe ratio** than the price-only baselines.
-
-In addition, we plan to test **portfolio allocation algorithms conditioned on each detected regime**
-(e.g., regime-switched equity/bond allocation, probability-weighted sizing). This part is
-potentially optional and awaits further literature review.
-
-## Limitations
-
-Lookahead bias (article timestamps vs market close) is the main validity threat · FinBERT
-confidence is miscalibrated out-of-domain · HMM state count invites overfitting · outlet
-credibility priors drift · multi-day timing edges may not survive transaction costs ·
-index-level results may not generalize to single names · news data coverage starts 2017
-(regime sample includes ~2 recessions).
-
-## Team & task split (4 people)
-
-- **Literature lead (1 person):** owns the paper's introduction; reads and refines papers, cites
-  our findings, and drives further research into large language models — especially confidence
-  calibration.
-- **Baseline engineer (1 person):** builds the price-only HMM baseline (Gaussian HMM / PCA-HMM)
-  and produces the baseline results.
-- **Sentiment-model engineer (1 person):** builds the sentiment model that feeds the HMM
-  (FinBERT layer, confidence = 1 − class entropy).
-- **Data engineer (1 person):** collects the sentiment data (together with the sentiment-model
-  engineer) and the confidence levels.
-
-## Relevant past papers
-
-### HMM / regime detection
-- **Hamilton (1989)**, *Econometrica 57(2)* — introduced Markov regime-switching for business
-  cycles. *Gap:* two-state parametric model, no news, no ML estimation.
-- **Nystrup et al. (2019)**, *JRFM 13(12):311* — regime-switching factor investing with HMMs,
-  with live retraining. *Gap:* price/vol observations only; news absent.
-
-### News sentiment & markets
-- **Tetlock (2007)**, *Journal of Finance 62(3)* — media content predicts short-horizon market
-  moves. *Gap:* bag-of-words on a single column; no regime model.
-- **Garcia & Norli (2021)**, *JFE 141(2)* — most news tone is noise for prediction. *Gap:*
-  motivates our importance weighting but does not build it.
-- **Araci (2019)**, arXiv:1908.10063 — FinBERT: financial-domain sentiment transformer. *Gap:*
-  classifier only; confidence miscalibration unexamined downstream.
-- **JRFM 18(8):412 (2025)** — FinBERT sentiment alone stalls at ~55–60% directional accuracy on
-  index direction. *Gap:* the accuracy ceiling our weighting scheme attacks.
-- **J. Behavioral Finance (2016)** — media sentiment in a regime-switching return/vol model.
-  *Gap:* sentiment as exogenous regressor, not HMM emissions; no article-level weighting.
-
-### Closest work
-- **PLOS ONE (2025), pone.0331658** — PCA-HMM on tech stocks including an investor-sentiment
-  series; finds sentiment dominates momentum/volume. *Gap:* generic aggregate sentiment index —
-  no article-level FinBERT, no confidence or importance weighting, no trading/portfolio
-  evaluation. **This is the paper to cite as nearest-neighbor and differentiate against.**
-- **TechRxiv: source credibility in LSTM stock prediction** — weights sentiment by source
-  credibility. *Gap:* LSTM direct prediction; no regime model, no economic evaluation.
-- **FusionLSTM-CNF (2025)** — confidence-calibrated weighting of FinBERT in a multi-modal LSTM.
-  *Gap:* fusion for direct prediction; no HMM, no regime timing.
-- **Mathematics 13(17):2747 (2025)** — FinBERT sentiment features with SHAP for stock
-  prediction. *Gap:* supervised direct prediction, no regime detection.
+Key cited works: Hamilton (1989); Rydén et al. (1998); Nystrup et al. (2017/2019/2020);
+Ang & Timmermann (2012); Tetlock (2007); Garcia & Norli (2021); Araci (2019, FinBERT);
+Li (2025, PLOS ONE e0331658 — nearest neighbor).
 
 ## License
 
