@@ -39,9 +39,9 @@ def fetch_market_data(start=FEATURE_START, end=EVAL_END, use_cache=True):
     """Return DataFrame indexed by trading day with columns:
     SPY_close, IEF_close, VIX_close, SPY_ret, IEF_ret, realized_vol.
 
-    `end` is inclusive. Caches to data/raw/market.parquet.
+    `end` is inclusive. Caches to data/cache/market_<start>_<end>.parquet.
     """
-    cache_file = f"{CACHE_DIR}/market.parquet"
+    cache_file = f"{CACHE_DIR}/market_{start}_{end}.parquet"
     if use_cache:
         try:
             cached = pd.read_parquet(cache_file)

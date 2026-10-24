@@ -143,6 +143,42 @@ news_corpus.py    llm_importance.py                      (state canon.)    metri
 - **In-sample disclosure**: HMMs are fit on the full feature window (standard for this
   literature, e.g. Ang–Timmermann); the backtest evaluates 2023. `random_state=42` fixed.
 
+## Longer lookback (2015–2023): how the picture changes
+
+`scripts/run_long_backtest.py` evaluates the price-only HMM switch over **9 years
+(2,264 trading days)** with monthly walk-forward refits (sentiment models stay
+2023-only — the news corpus covers 2023). Three findings:
+
+**1. Longer training lookback helps monotonically.** OOS Switch Sharpe by
+training-window size: full history (2010→) **1.03**, 5-year lookback **0.93**,
+2-year lookback **0.84**. More regimes in training (2018 Q4, 2020 COVID, 2022
+bear) = better state estimation.
+
+**2. The 2023-only analysis was flattering to everything.** Over 2015–2023,
+buy-and-hold SPY Sharpe collapses from 1.79 to **0.61** (vol 18.2%, maxDD
+−35.7%) and 60/40 to 0.65. The walk-forward HMM switch posts **1.03 Sharpe,
+maxDD −20.0%**, beating both benchmarks in point estimates over 9 years.
+
+**3. Still not statistically significant — and 2022 is a warning.** The
+Switch-vs-B&H Sharpe gap (0.42 annualized) has JK-Memmel p ≈ 0.32 and
+bootstrap p ≈ 0.26 even with 2,264 days (the strategies are weakly correlated,
+so the daily gap is small relative to its variance). And the switch *lost* to
+B&H in 2022 (yearly Sharpe −1.57 vs −0.83): prolonged bears churn regime
+models with failed re-entries. Per-year Sharpe (switch vs B&H): 2018 +2.01 vs
+−0.27 and 2015 +0.26 vs +0.08 show where regime detection earns its keep —
+crash avoidance, not bull-market riding.
+
+| Strategy (2015–2023 OOS) | Ann Ret | Ann Vol | Sharpe | MaxDD |
+|---|---|---|---|---|
+| M1 walk-forward, full lookback | 9.2% | 8.9% | **1.03** | −20.0% |
+| M1 walk-forward, 5y lookback | 8.5% | 9.3% | 0.93 | −16.0% |
+| M1 walk-forward, 2y lookback | 8.3% | 10.2% | 0.84 | −24.5% |
+| M1 in-sample (full window) | 8.0% | 9.4% | 0.87 | −21.0% |
+| Buy & Hold SPY | 9.9% | 18.2% | 0.61 | −35.7% |
+| 60/40 Static | 6.6% | 10.7% | 0.65 | −22.3% |
+
+Tables: `outputs/tables/long_backtest_{summary,years,significance}.csv`.
+
 ## Key engineering findings (negative results included)
 
 1. **Corpus-coverage artifact (caught and fixed).** In the first build, M3/M4's
