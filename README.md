@@ -145,6 +145,32 @@ news_corpus.py    llm_importance.py                      (state canon.)    metri
 - **In-sample disclosure**: HMMs are fit on the full feature window (standard for this
   literature, e.g. Ang–Timmermann); the backtest evaluates 2023. `random_state=42` fixed.
 
+## Strategy zoo: 8 models × 5 strategies (`scripts/run_strategy_zoo.py`)
+
+Models: M1/M2 price-only · M3/M4 FinBERT · M5/M6 VADER · **M7/M8 FinMatcha-3B**
+(finance-instruction-tuned Llama-family LLM — the "FinLLaMA" stand-in; the
+publicly mirrored FinGPT-MT-Llama-3 GGUF was diagnosed broken, emitting
+immediate EOS in both chat and raw formats).
+Strategies: binary switch · regime MVO · probability-weighted (`w = p_bull(t−1)`)
+· hysteresis switch (enter 0.6 / exit 0.4) · vol-targeted exposure (10% target).
+
+![Strategy zoo heatmap](outputs/figures/strategy_zoo_heatmap.png)
+
+Findings:
+
+1. **All three LLM sentiment models cluster together** (Switch Sharpe: FinBERT
+   2.11, FinMatcha 2.11, VADER-PCA 2.02 vs price-only 1.89) — a third,
+   independently trained finance LLM reproduces the FinBERT result almost
+   exactly, reinforcing the coverage-structure mechanism finding.
+2. **Strategy choice barely matters inside a model**: switch ≈ hysteresis ≈
+   prob-weight (the HMM posteriors are saturated near 0/1, so continuous
+   weighting ≈ binary, and the hysteresis dead-band rarely binds). MVO
+   compresses everything toward B&H.
+3. **Vol-targeting at a 10% cap is mis-specified for this asset pair** — it
+   de-equities the entire +25% bull year (Sharpe ~0–0.14 for every model,
+   identical −20.5% drawdown profile). Reported as-is, not tuned away.
+4. Full table: `outputs/tables/strategy_zoo.csv`.
+
 ## Longer lookback (2015–2023): how the picture changes
 
 `scripts/run_long_backtest.py` evaluates the price-only HMM switch over **9 years

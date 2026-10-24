@@ -20,6 +20,8 @@ SENTIMENT_FEATURES = ["sent_w", "sent_w_ema5", "sent_disp"]
 # VADER baseline: identical architecture, lexicon sentiment instead of FinBERT
 # (`_v` suffix columns built by the pipeline from vader_scoring output).
 SENTIMENT_FEATURES_VADER = ["sent_w_v", "sent_w_ema5_v", "sent_disp_v"]
+# FinGPT-MT (Llama-3-8B) baseline: same architecture, instruction-tuned LLM sentiment.
+SENTIMENT_FEATURES_FINGPT = ["sent_w_f", "sent_w_ema5_f", "sent_disp_f"]
 
 FEATURE_SETS = {
     "M1_price_hmm": (MARKET_FEATURES, False),
@@ -28,6 +30,8 @@ FEATURE_SETS = {
     "M4_sent_pca_hmm": (MARKET_FEATURES + SENTIMENT_FEATURES, True),
     "M5_vader_hmm": (MARKET_FEATURES + SENTIMENT_FEATURES_VADER, False),
     "M6_vader_pca_hmm": (MARKET_FEATURES + SENTIMENT_FEATURES_VADER, True),
+    "M7_fingpt_hmm": (MARKET_FEATURES + SENTIMENT_FEATURES_FINGPT, False),
+    "M8_fingpt_pca_hmm": (MARKET_FEATURES + SENTIMENT_FEATURES_FINGPT, True),
 }
 
 def _fit_one(feat, cols, use_pca, random_state):
@@ -51,8 +55,22 @@ def _fit_one(feat, cols, use_pca, random_state):
         n_iter=1000,
         tol=1e-4,
         random_state=random_state,
+        min_covar=1e-3,
     )
-    hmm.fit(Xs)
+    try:
+        hmm.fit(Xs)
+    except ValueError:
+        # degenerate feature blocks (e.g., one-hot sentiment paths) can produce
+        # singular covariances during EM — escalate regularization and retry
+        hmm = GaussianHMM(
+            n_components=2,
+            covariance_type="full",
+            n_iter=1000,
+            tol=1e-4,
+            random_state=random_state + 1,
+            min_covar=1e-2,
+        )
+        hmm.fit(Xs)
 
     # Canonicalize: state with higher mean VIX (original units) = Bear = 1
     vix_z = Xs if not use_pca else None

@@ -160,3 +160,49 @@ def static_60_40(rets, cost_bps=COST_BPS):
     turn = np.where(is_rebal, np.abs(0.6 - w_spy_prev) + np.abs(0.4 - w_iec_prev), 0.0)
     cost = pd.Series(turn, index=rets.index) * (cost_bps / 1e4)
     return gross - cost
+
+
+# ------------------------------------------------- strategy zoo additions
+
+def prob_weighted_weights(p_bull):
+    """Probability-weighted allocation: w_SPY(t) = p_bull(t-1), continuous.
+
+    No thresholding; exposure scales linearly with regime confidence.
+    """
+    w = p_bull.shift(1)
+    return w.fillna(0.0).clip(0.0, 1.0)
+
+
+def hysteresis_positions(p_bull, enter_bull=0.6, exit_bull=0.4):
+    """Switch with hysteresis: enter bull at p > enter_bull, exit at p < exit_bull.
+
+    Reduces whipsaw in choppy posterior regimes (state persists in the
+    dead-band). Still fully lagged (position for day t from p at t-1).
+    """
+    sig = p_bull.shift(1)
+    pos = np.zeros(len(sig))
+    cur = 0.0
+    vals = sig.values
+    for i, p in enumerate(vals):
+        if np.isnan(p):
+            pos[i] = 0.0
+            cur = 0.0
+            continue
+        if cur == 0.0 and p > enter_bull:
+            cur = 1.0
+        elif cur == 1.0 and p < exit_bull:
+            cur = 0.0
+        pos[i] = cur
+    return pd.Series(pos, index=p_bull.index)
+
+
+def vol_target_switch_weights(p_bull, realized_vol, target_vol=0.10):
+    """Vol-targeted exposure: w_SPY(t) = p_bull(t-1) * clip(target / rv(t-1), 0, 1).
+
+    Scales equity exposure down when realized vol exceeds the target. rv must be
+    lagged with the signal (both known at t-1).
+    """
+    lag_rv = realized_vol.shift(1)
+    scale = (target_vol / lag_rv).clip(0.0, 1.0)
+    w = (p_bull.shift(1) * scale)
+    return w.fillna(0.0).clip(0.0, 1.0)
