@@ -232,6 +232,8 @@ conventional significance.
 
 
 
+## Key engineering findings (negative results included)
+
 1. **Corpus-coverage artifact (caught and fixed).** In the first build, M3/M4's
    "bear" state was the *zero-news-coverage* state: 587/631 trading days had no
    articles, and zero-count news features made the HMM split on coverage
