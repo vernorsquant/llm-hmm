@@ -7,6 +7,7 @@ inflated the single-fit numbers is eliminated. Significance: JK-Memmel +
 block bootstrap with Holm correction across the sentiment-vs-baseline family.
 """
 
+import hashlib
 import os
 import sys
 
@@ -142,8 +143,9 @@ def main():
         ra = bt.run_binary_switch(oos[a].loc[eval_idx], rets, cost_bps=COST_BPS)[0]
         rb = bh if b is None else bt.run_binary_switch(oos[b].loc[eval_idx], rets, cost_bps=COST_BPS)[0]
         jk = jk_memmel = __import__("hmm_sentiment.stats_tests", fromlist=["jk_memmel_sharpe_diff"]).jk_memmel_sharpe_diff(ra.values, rb.values)
-        boot = __import__("hmm_sentiment.stats_tests", fromlist=["bootstrap_sharpe_diff"]).bootstrap_sharpe_diff(ra.values, rb.values, n_boot=5000, block=10, seed=7)
         label = f"{a} vs {b or 'B&H SPY'}"
+        seed = int(hashlib.sha1(label.encode()).hexdigest()[:8], 16) % (2**31)
+        boot = __import__("hmm_sentiment.stats_tests", fromlist=["bootstrap_sharpe_diff"]).bootstrap_sharpe_diff(ra.values, rb.values, n_boot=5000, block=10, seed=seed)
         raw_ps.append(jk["p_value"])
         sig_rows.append({"pair": label, "sr_diff_daily": jk["sr_diff"], "jk_z": jk["z"],
                          "jk_p": jk["p_value"], "boot_p": boot["p_value"]})
@@ -152,6 +154,12 @@ def main():
     for r_, h in zip(sig_rows, holm):
         r_["holm_p"] = h
     sig_df = pd.DataFrame(sig_rows)
+    # minimum detectable effect at 80% power: MDE_daily = 2.80 * SE, where
+    # SE = sr_diff / z from the JK statistic; annualized via sqrt(252).
+    def _mde_ann(row):
+        se = abs(row["sr_diff_daily"] / row["jk_z"]) if abs(row["jk_z"]) > 1e-12 else np.nan
+        return float(2.80 * se * np.sqrt(252)) if np.isfinite(se) and se > 0 else np.nan
+    sig_df["mde_ann_80pct"] = sig_df.apply(_mde_ann, axis=1)
     sig_df.to_csv(f"{TABLE_DIR}/zoo_2023_oos_significance.csv", index=False)
 
     print(df.sort_values("sharpe", ascending=False).round(3).to_string(index=False), flush=True)

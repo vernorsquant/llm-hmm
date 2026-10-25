@@ -27,17 +27,19 @@ def newey_west_var(x, lags=5):
 
 
 def dm_test(r1, r2, lags=5):
-    """Diebold-Mariano on the loss differential d_t = r1_t - r2_t (loss = -return).
+    """HAC (Newey-West) test of the EQUAL-MEANS null E[r1] == E[r2].
 
-    Tests H0: E[r1] == E[r2] with HAC variance. Two-sided normal p.
-    """
+    Note: this tests equal MEANS, not equal Sharpe ratios — strategies with
+    different volatilities can differ in Sharpe while means match. Use
+    jk_memmel_sharpe_diff for the Sharpe null. Two-sided normal p (norm.sf,
+    no 1-cdf underflow)."""
     r1 = np.asarray(r1, float)
     r2 = np.asarray(r2, float)
     d = r1 - r2
     d = d[~np.isnan(d)]
     T = len(d)
     dm = d.mean() / np.sqrt(newey_west_var(d, lags))
-    p = 2.0 * (1.0 - stats.norm.cdf(abs(dm)))
+    p = 2.0 * stats.norm.sf(abs(dm))
     return {"dm": float(dm), "p_value": float(p), "n": T}
 
 
@@ -66,12 +68,15 @@ def jk_memmel_sharpe_diff(r1, r2):
     )
     var_d = max(t_var / T, 1e-16)
     z = (sr1 - sr2) / np.sqrt(var_d)
-    p = 2.0 * (1.0 - stats.norm.cdf(abs(z)))
+    p = 2.0 * stats.norm.sf(abs(z))
     return {"sr_diff": float(sr1 - sr2), "z": float(z), "p_value": float(p), "n": T}
 
 
 def _block_indices(T, block, rng):
-    """Stationary-block-bootstrap style indices: overlapping blocks of ~`block`."""
+    """Circular block bootstrap indices: fixed-length blocks drawn with
+    wraparound (CBB). NOTE: this is NOT the stationary bootstrap (geometric
+    block lengths) despite the historical docstring; the CBB convention is
+    kept for reproducibility with earlier runs."""
     n_blocks = int(np.ceil(T / block))
     starts = rng.integers(0, T, size=n_blocks)
     idx = np.concatenate([ (s + np.arange(block)) % T for s in starts ])[:T]
@@ -79,8 +84,9 @@ def _block_indices(T, block, rng):
 
 
 def bootstrap_sharpe_diff(r1, r2, n_boot=10000, block=10, seed=0):
-    """Two-sided bootstrap p-value and 95% CI for Sharpe(r1) - Sharpe(r2),
-    paired stationary block bootstrap (preserves short-range dependence)."""
+    """Two-sided circular block-bootstrap p-value and 95% CI for
+    Sharpe(r1) - Sharpe(r2). p is floored at 1/(n_boot+1) — an exact 0.0 is
+    impossible for any finite resample count."""
     r1 = np.asarray(r1, float)
     r2 = np.asarray(r2, float)
     mask = ~(np.isnan(r1) | np.isnan(r2))
@@ -96,9 +102,8 @@ def bootstrap_sharpe_diff(r1, r2, n_boot=10000, block=10, seed=0):
     for i in range(n_boot):
         idx = _block_indices(T, block, rng)
         diffs[i] = sharpe(r1[idx]) - sharpe(r2[idx])
-    # two-sided p relative to the null of zero, centered by the bootstrap dist
     centered = diffs - diffs.mean()
-    p = float(np.mean(np.abs(centered) >= abs(d_obs)))
+    p = max(float(np.mean(np.abs(centered) >= abs(d_obs))), 1.0 / (n_boot + 1))
     ci_low, ci_high = np.percentile(diffs, [2.5, 97.5])
     return {
         "sr_diff": float(d_obs),

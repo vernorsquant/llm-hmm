@@ -1,7 +1,10 @@
 """Article-level scoring: FinBERT sentiment, entropy-based confidence, LLM importance.
 
-Column convention for probability arrays: [P(positive), P(neutral), P(negative)]
-matching ProsusAI/finbert's id2label mapping {0: positive, 1: neutral, 2: negative}.
+Column convention for probability arrays: the pipeline resolves FinBERT's
+columns BY NAME via model.config.id2label (actual mapping:
+{0: 'positive', 1: 'negative', 2: 'neutral'} — note neg/neu are swapped vs
+the naive order). All public helpers here expect the resolved order
+[P(positive), P(neutral), P(negative)].
 """
 
 import re
@@ -19,9 +22,19 @@ def entropy(p):
 
 
 def confidence_from_probs(p):
-    """Normalized confidence C = 1 - H(p)/ln(3), clipped to [0, 1]."""
+    """Normalized confidence C = 1 - H(p)/ln(3), clipped to [0, 1].
+
+    Point-mass-at-neutral rows (P_neu = 1 exactly — VADER outputs with no
+    lexicon words, or unparseable LLM fallbacks) carry NO sentiment signal,
+    so their confidence is capped at 0.25 rather than rewarded with the
+    maximal 1.0 a zero-entropy point mass would otherwise receive.
+    """
     c = 1.0 - entropy(p) / _LOG3
-    return np.clip(c, 0.0, 1.0)
+    c = np.clip(c, 0.0, 1.0)
+    neutral_point_mass = (np.asarray(p)[:, 1] >= 0.999) if np.asarray(p).ndim == 2 else None
+    if neutral_point_mass is not None:
+        c = np.where(neutral_point_mass, np.minimum(c, 0.25), c)
+    return c
 
 
 def sentiment_raw(p):

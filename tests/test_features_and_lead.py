@@ -12,6 +12,7 @@ class TestCoverageGaps:
         return pd.DataFrame(
             {
                 "trading_date": [day] * n,
+                "headline": [f"macro headline {i}" for i in range(n)],
                 "S_raw": [s_raw] * n,
                 "confidence": [0.8] * n,
                 "importance": [0.9] * n,

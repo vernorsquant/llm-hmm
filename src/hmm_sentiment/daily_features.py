@@ -25,7 +25,7 @@ def map_articles_to_trading_days(articles, trading_days):
     for _, art in articles.iterrows():
         et = _et(pd.Timestamp(art["timestamp_utc"]))
         d = pd.Timestamp(et.date())  # tz-naive calendar date in ET
-        after_close = (et.hour, et.minute, et.second) > (16, 0, 0)
+        after_close = (et.hour, et.minute, et.second) >= (16, 0, 0)
         if after_close:
             pos = td.searchsorted(d, side="right")
         else:
@@ -59,6 +59,14 @@ def build_daily_news_features(articles_scored, trading_days):
     arts = articles_scored.copy()
     arts["trading_date"] = pd.DatetimeIndex(arts["trading_date"]).normalize()
     arts["weight"] = article_weights(arts["confidence"].values, arts["importance"].values)
+
+    # Dedupe identical headlines mapping to the SAME trading day: the corpus
+    # dedupes on (headline, window), but overlapping GDELT windows refetch the
+    # same article into multiple windows, double-counting weight on the event
+    # days this pipeline cares about (up to 7x on some FOMC days).
+    dedupe_cols = [c for c in ("headline", "trading_date") if c in arts.columns]
+    if dedupe_cols:
+        arts = arts.drop_duplicates(subset=dedupe_cols)
 
     out = pd.DataFrame(index=td)
     grouped = arts.groupby("trading_date")

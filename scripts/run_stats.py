@@ -67,28 +67,16 @@ def build_features():
 
 
 def month_posterior(train_feat, month_feat, cols, use_pca, random_state=42):
-    """Fit on `train_feat`, predict posteriors (P_bull) for `month_feat` days.
+    """Fit on train, then run a CAUSAL filtered forward pass over the month.
 
-    Canonicalization (which raw state is bear) is fixed on the TRAIN window.
+    Replaced the original predict_proba smoothing (forward-BACKWARD pass over
+    the whole month frame), which let day-t posteriors depend on days
+    t+1..month-end — a lookahead channel in every walk-forward path. See
+    regime_models.filtered_month_posterior.
     """
-    res = _fit_one(train_feat, cols, use_pca, random_state)
-    hmm, scaler, pca = res["model"], res["scaler"], res["pca"]
-    X = month_feat[cols].astype(float)
-    valid = X.notna().all(axis=1).values
-    Xv = X.values[valid]
-    Xs = scaler.transform(Xv)
-    if pca is not None:
-        Xs = pca.transform(Xs)
-    proba = hmm.predict_proba(Xs)
-    # recover which raw index is bull (mirror of _fit_one canonicalization)
-    vix_z = scaler.transform(train_feat[cols].astype(float).values[train_feat[cols].notna().all(axis=1).values])
-    vix_col = vix_z[:, cols.index("VIX_close")]
-    states_raw = hmm.predict(scaler.transform(train_feat[cols].astype(float).values[train_feat[cols].notna().all(axis=1).values]) if pca is None else pca.transform(scaler.transform(train_feat[cols].astype(float).values[train_feat[cols].notna().all(axis=1).values])))
-    mean_vix = {k: vix_col[states_raw == k].mean() for k in (0, 1)}
-    bear_raw = max(mean_vix, key=mean_vix.get)
-    bull_raw = 1 - bear_raw
-    post = pd.Series(proba[:, bull_raw], index=month_feat.index[valid])
-    return post.reindex(month_feat.index)
+    from hmm_sentiment.regime_models import filtered_month_posterior
+
+    return filtered_month_posterior(train_feat, month_feat, cols, use_pca, random_state)
 
 
 def walk_forward(feat, eval_idx):
@@ -209,13 +197,18 @@ def main():
                         "bear_days": int(flag.sum()),
                         "proxy_days": int(proxy.sum())})
     m1_b, m3_b = bear_flags["M1_price_hmm"], bear_flags["M3_sent_hmm"]
-    b_only_m3 = int(((m3_b == 1) & (m1_b == 0) & (proxy == 1)).sum())
-    c_only_m1 = int(((m1_b == 1) & (m3_b == 0) & (proxy == 1)).sum())
-    mc = mcnemar_test(b=b_only_m3, c=c_only_m1)
+    # McNemar over ALL eval days (conditioning on the proxy voids the
+    # marginal-homogeneity null — audit finding). Proxy-conditional flag rates
+    # are reported descriptively below.
+    b_m3_only = int(((m3_b == 1) & (m1_b == 0)).sum())
+    c_m1_only = int(((m1_b == 1) & (m3_b == 0)).sum())
+    mc = mcnemar_test(b=b_m3_only, c=c_m1_only)
     stress_df = pd.DataFrame(f1_rows)
+    stress_df["m3_bear_on_proxy_days"] = [int(((bear_flags["M3_sent_hmm"] == 1) & (proxy == 1)).sum()),
+                                          int(((bear_flags["M1_price_hmm"] == 1) & (proxy == 1)).sum())]
     stress_df.to_csv(f"{TABLE_DIR}/stress_f1.csv", index=False)
     print("STRESS F1 vs VIX>25:\n", stress_df.to_string(index=False))
-    print("McNemar (proxy-correct discordant flags, M3-only vs M1-only):", mc)
+    print("McNemar (all-days discordant bear flags, M3-only vs M1-only):", mc)
 
     print("\nIS/OOS table:\n", perf.to_string(index=False))
     print("\nSignificance (IS):\n", stats_df[stats_df["mode"] == "IS"].to_string(index=False))

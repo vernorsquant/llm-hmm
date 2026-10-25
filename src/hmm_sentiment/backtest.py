@@ -105,19 +105,45 @@ def regime_conditioned_moments(asset_returns, states, ann=TRADING_DAYS_PER_YEAR)
     return moments
 
 
-def mvo_weight_series(p_bull, moments):
-    """Daily MVO weights from lagged blended moments. Returns (weights_df, w_prev0)."""
-    mu0, s0 = moments[0]
-    mu1, s1 = moments[1]
+def mvo_weight_series(p_bull, moments=None, rets=None, states=None,
+                      ann=TRADING_DAYS_PER_YEAR, min_state_obs=10):
+    """Daily MVO weights, strictly no lookahead.
+
+    Weights for day t come from the posterior known at close t-1 (p_bull is
+    shifted one day). Regime-conditioned moments are estimated from an
+    EXPANDING window of returns/states strictly before day t (never from the
+    full sample). `moments` (precomputed) may be passed for the legacy
+    full-sample path; if omitted, `rets`/`states` drive expanding moments.
+    """
     idx = p_bull.index
+    shifted = p_bull.shift(1)
     rows = np.zeros((len(idx), 2))
     w_prev = np.array([0.0, 1.0])  # start defensively
-    for i, (t, p) in enumerate(p_bull.items()):
-        if np.isnan(p):
-            w = w_prev.copy()
-        else:
-            mu_b, s_b = blend_moments(mu0, s0, mu1, s1, float(p))
+    have_moments = moments is not None
+    cur_moments = moments
+    rets_arr = np.asarray(rets, dtype=float) if rets is not None else None
+    states_arr = np.asarray(states) if states is not None else None
+
+    for i, t in enumerate(idx):
+        p = shifted.iloc[i]
+        if have_moments:
+            cur_moments = moments
+        elif rets_arr is not None and i >= 1:
+            # expanding: use rows strictly before day t
+            sub_rets = rets_arr[:i]
+            sub_states = states_arr[:i]
+            counts = {int(k): int((sub_states == k).sum()) for k in (0, 1) if (sub_states == k).sum() >= min_state_obs}
+            if len(counts) == 2:
+                try:
+                    cur_moments = regime_conditioned_moments(sub_rets, sub_states)
+                except Exception:
+                    pass  # keep last valid moments
+        if cur_moments is not None and not np.isnan(p):
+            mu_b, s_b = blend_moments(cur_moments[0][0], cur_moments[0][1],
+                                      cur_moments[1][0], cur_moments[1][1], float(p))
             w = solve_max_sharpe_weights(mu_b, s_b)
+        else:
+            w = w_prev.copy()
         rows[i] = w
         w_prev = w
     return pd.DataFrame(rows, index=idx, columns=["SPY", "IEF"])
@@ -134,13 +160,23 @@ def run_binary_switch(p_bull, rets, cost_bps=COST_BPS):
     return gross - cost, pos
 
 
-def run_mvo(p_bull, rets, states, cost_bps=COST_BPS):
-    """Regime-conditioned blended MVO. `states` over rets index. Net daily returns."""
-    moments = regime_conditioned_moments(rets[["SPY", "IEF"]].values, states)
-    weights = mvo_weight_series(p_bull, moments)
+def run_mvo(p_bull, rets, states, cost_bps=COST_BPS, expanding=True):
+    """Regime-conditioned blended MVO, strictly no lookahead: weights for day t
+    use the posterior from t-1 and moments estimated from an expanding window
+    of returns/states strictly before t (never full-sample). Net daily returns.
+
+    Cost convention (one-sided, consistent with run_binary_switch and
+    weight_net_returns): 5 bps x |delta w_SPY| per day. w_IEF = 1 - w_SPY, so
+    charging both legs would double-count a fully-invested two-asset switch.
+    """
+    if expanding:
+        weights = mvo_weight_series(p_bull, rets=rets[["SPY", "IEF"]].values, states=states)
+    else:
+        moments = regime_conditioned_moments(rets[["SPY", "IEF"]].values, states)
+        weights = mvo_weight_series(p_bull, moments=moments)
     gross = (weights["SPY"] * rets["SPY"].reindex(weights.index).fillna(0.0)
              + weights["IEF"] * rets["IEF"].reindex(weights.index).fillna(0.0))
-    dw = weights.diff().abs().sum(axis=1).fillna(0.0)
+    dw = weights["SPY"].diff().abs().fillna(weights["SPY"].abs())
     cost = (cost_bps / 1e4) * dw
     return gross - cost, weights
 
@@ -150,16 +186,29 @@ def buy_and_hold(rets, asset="SPY"):
 
 
 def static_60_40(rets, cost_bps=COST_BPS):
-    """Monthly-rebalanced 60/40 with transaction costs."""
-    w_spy = pd.Series(0.6, index=rets.index)
+    """Monthly-rebalanced 60/40 with transaction costs on drifted weights.
+
+    Tracks the drifted equity weight between rebalances and charges the true
+    trade size at each month-end rebalance (5 bps per unit of one-sided
+    turnover, matching every other strategy in this repo).
+    """
+    eq_w = 0.6
+    gross = np.empty(len(rets))
+    costs = np.zeros(len(rets))
+    w_eq = eq_w  # current drifted equity weight
+    spy = rets["SPY"].fillna(0.0).values
+    ief = rets["IEF"].fillna(0.0).values
     months = rets.index.to_period("M")
-    is_rebal = pd.Series(months != pd.Series(months).shift(1)).values
-    w_spy_prev = w_spy.shift(1).fillna(0.6)
-    w_iec_prev = 1.0 - w_spy_prev
-    gross = 0.6 * rets["SPY"].fillna(0.0) + 0.4 * rets["IEF"].fillna(0.0)
-    turn = np.where(is_rebal, np.abs(0.6 - w_spy_prev) + np.abs(0.4 - w_iec_prev), 0.0)
-    cost = pd.Series(turn, index=rets.index) * (cost_bps / 1e4)
-    return gross - cost
+    prev_month = months[0]
+    for i in range(len(rets)):
+        if months[i] != prev_month:  # month-end -> rebalance to target
+            trade = abs(eq_w - w_eq)
+            costs[i] = (cost_bps / 1e4) * trade
+            w_eq = eq_w
+            prev_month = months[i]
+        gross[i] = w_eq * spy[i] + (1.0 - w_eq) * ief[i]
+        w_eq = w_eq * (1.0 + spy[i]) / (1.0 + w_eq * spy[i] + (1.0 - w_eq) * ief[i])
+    return pd.Series(gross - costs, index=rets.index)
 
 
 # ------------------------------------------------- strategy zoo additions

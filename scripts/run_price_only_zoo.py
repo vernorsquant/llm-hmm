@@ -67,7 +67,7 @@ def run():
             jk = jk_memmel_sharpe_diff(net.values, bh.values)
             boot = bootstrap_sharpe_diff(net.values, bh.values, n_boot=5000, block=10, seed=7)
             rows.append({"window": window_name, "strategy": f"SIG {name} vs B&H",
-                         "ann_return": None, "ann_vol": None, "sharpe": jk["sr_diff"],
+                         "ann_return": None, "ann_vol": None, "sr_diff_daily": jk["sr_diff"],
                          "max_drawdown": None, "calmar": None, "n_days": jk["n"],
                          "trades": None, "jk_p": jk["p_value"], "boot_p": boot["p_value"]})
 

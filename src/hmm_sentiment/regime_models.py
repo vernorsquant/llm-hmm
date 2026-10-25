@@ -7,6 +7,8 @@ mean VIX), matching the spec and the regime-detection literature convention.
 
 import numpy as np
 import pandas as pd
+from scipy.special import logsumexp
+
 from hmmlearn.hmm import GaussianHMM
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -118,3 +120,64 @@ def fit_regime_models(feat, feature_sets=None, random_state=42):
             cols, use_pca = list(spec), ("pca" in name.lower())
         results[name] = _fit_one(feat, cols, use_pca, random_state)
     return results
+
+
+def causal_filtered_probabilities(hmm, Xs):
+    """CAUSAL forward (Hamilton) filter: P(z_t | X_{1:t}) per row.
+
+    hmmlearn's predict_proba runs forward-BACKWARD smoothing, so its day-t
+    posterior depends on FUTURE observations within the frame — a lookahead
+    channel in walk-forward paths. This uses only past + current observations.
+    """
+    from scipy.special import logsumexp
+
+    ll = hmm._compute_log_likelihood(np.asarray(Xs, dtype=float))
+    n, K = ll.shape
+    logstart = np.log(np.asarray(hmm.startprob_) + 1e-16)
+    logtrans = np.log(np.asarray(hmm.transmat_) + 1e-16)
+    logalpha = np.empty((n, K))
+    logalpha[0] = logstart + ll[0]
+    logalpha[0] -= logsumexp(logalpha[0])
+    for t in range(1, n):
+        # alpha_t(j) ∝ ll_t(j) * sum_i alpha_{t-1}(i) * A[i, j]
+        logalpha[t] = ll[t] + logsumexp(logalpha[t - 1][:, None] + logtrans, axis=0)
+    return np.exp(logalpha - logsumexp(logalpha, axis=1, keepdims=True))
+
+
+def filtered_month_posterior(train_feat, month_feat, cols, use_pca, random_state=42, warmup_rows=60):
+    """Fit on train only, then run a CAUSAL filtered forward pass over
+    [train-tail warmup + month], carrying the filtered state distribution from
+    the train window into the month. Returns posterior_bull for the month days.
+
+    Replaces predict_proba-based smoothing (which leaked day t+1..month-end
+    information into day-t posteriors — see README audit section).
+    """
+    res = _fit_one(train_feat, cols, use_pca, random_state)
+    hmm, scaler, pca = res["model"], res["scaler"], res["pca"]
+
+    def to_model_space(frame):
+        X = frame[cols].astype(float)
+        valid = X.notna().all(axis=1).values
+        Xs = scaler.transform(X.values[valid])
+        if pca is not None:
+            Xs = pca.transform(Xs)
+        return Xs, valid
+
+    Xtr, _ = to_model_space(train_feat)
+    Xmo, valid_mo = to_model_space(month_feat)
+    if len(Xtr) == 0 or len(Xmo) == 0:
+        return pd.Series(dtype=float).reindex(month_feat.index)
+
+    tail = Xtr[-warmup_rows:]
+    Xall = np.vstack([tail, Xmo])
+
+    # canonicalization from TRAIN only (mirror of _fit_one)
+    vix_col_train = Xtr[:, cols.index("VIX_close")]
+    states_raw = hmm.predict(Xtr)
+    mean_vix = {k: vix_col_train[states_raw == k].mean() for k in (0, 1)}
+    bear_raw = max(mean_vix, key=mean_vix.get)
+    bull_raw = 1 - bear_raw
+
+    alpha = causal_filtered_probabilities(hmm, Xall)
+    post = pd.Series(alpha[len(tail):, bull_raw], index=month_feat.index[valid_mo])
+    return post.reindex(month_feat.index)

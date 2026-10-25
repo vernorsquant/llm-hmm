@@ -227,26 +227,35 @@ Over 2015–2023 (out-of-sample by construction), all SMA/momentum rules
 *underperform* B&H (0.37–0.55 vs 0.61); only pure vol-targeting edges it (0.74).
 
 **Walk-forward (out-of-sample) 2023 zoo** — every model refit monthly on prior
-data only, so these numbers carry no in-sample optimism:
+data only, posteriors are CAUSAL filtered (no smoothing leak), deduped corpus,
+neutral-confidence caps active, MVO on expanding prior-only moments, one-sided
+5 bps costs for all strategies:
 
 | Model (OOS) | Switch | MVO | Prob-wt | Hysteresis | Vol-target |
 |---|---|---|---|---|---|
-| **M3 FinBERT HMM** | **2.26** | 2.04 | 2.24 | 2.26 | 0.16 |
-| M4 FinBERT PCA | 1.94 | 1.75 | 1.92 | 1.94 | 0.07 |
-| M8 FinMatcha PCA | 2.01 | 1.74 | 2.09 | 2.01 | 0.10 |
-| M5 VADER HMM | 1.86 | 1.65 | 1.81 | 1.86 | 0.00 |
-| M6 VADER PCA | 1.87 | 1.75 | 1.87 | 1.87 | 0.04 |
-| M7 FinMatcha HMM | 1.65 | 1.88 | 1.68 | 1.65 | −0.03 |
-| **M1/M2 price HMM** | 1.65 | 2.10 | 1.72 | 1.65 | −0.00 |
+| **M7 FinMatcha HMM** | **2.16** | 0.96 | 2.16 | 2.16 | 0.13 |
+| M8 FinMatcha PCA | 0.87 | 0.27 | 0.85 | 0.87 | −0.42 |
+| **M3 FinBERT HMM** | 2.08 | 1.11 | 2.13 | 2.08 | 0.12 |
+| M4 FinBERT PCA | 1.03 | −0.05 | 1.02 | 1.03 | −0.36 |
+| M5 VADER HMM | 2.01 | 0.75 | 1.98 | 2.01 | 0.00 |
+| M6 VADER PCA | 0.64 | 0.14 | 0.64 | 0.64 | −0.48 |
+| **M1/M2 price HMM** | 1.57–1.82 | 0.28–0.38 | 1.62–1.72 | 1.55–1.82 | −0.01 |
 | SMA 50/200 (no HMM) | 1.67 | — | — | — | — |
 | Buy & Hold SPY | 1.79 | — | — | — | — |
-| 60/40 | 1.75 | — | — | — | — |
+| 60/40 | 1.73 | — | — | — | — |
 
-Significance (JK-Memmel + block bootstrap, Holm-corrected): **nothing survives.**
-M3 FinBERT vs price-HMM: +0.038 daily Sharpe, p = 0.26/0.15, Holm 1.0. M3 vs
-B&H: p = 0.14/0.24. FinMatcha HMM vs price-HMM: +0.0001, p = 0.997 — under
-walk-forward refitting, FinMatcha sentiment contributes literally nothing.
-Price-HMM vs B&H: negative (p = 0.75).
+**Significance: nothing survives, and the bar is enormous.** All five tested
+pairs: JK-Memmel p 0.14–0.99, bootstrap p 0.15–0.99, Holm 1.0. The
+minimum-detectable annualized Sharpe difference at 80% power in a 250-day
+window is **0.91–1.67** — a realistic 0.3-annualized edge has only ~5% power
+(auditor Monte-Carlo: 5.4% at T=252, 16% at T=2260). Non-rejections in this
+table are uninformative, not evidence of parity.
+
+**The honest mechanism statement:** after removing every artifact (smoothing
+leak, coverage double-count, neutral-confidence inflation, MVO lookahead,
+cost-convention bias), the sentiment models rank FinMatcha ≈ SMA-10/40-artifact
+≈ FinBERT > VADER ≈ price-HMM ≈ B&H, with MVO strictly dominated. The spread
+between sentiment models and the price baseline is within one year's noise.
 
 
 
