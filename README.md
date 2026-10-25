@@ -207,28 +207,46 @@ crash avoidance, not bull-market riding.
 
 Tables: `outputs/tables/long_backtest_{summary,years,significance}.csv`.
 
-## Price-only zoo: no HMM, no sentiment (`scripts/run_price_only_zoo.py`)
+## Price-only zoo + walk-forward OOS zoo (`scripts/run_price_only_zoo.py`, `scripts/run_zoo_2023_oos.py`)
 
-Naive price rules with **no fitted parameters** (so no in-sample optimism at all),
-same cost model:
+Naive price rules with **no fitted parameters** (no in-sample optimism possible),
+same cost model, restricted to 2023:
 
-| Strategy | 2023 Sharpe | 2015–2023 Sharpe | 2015–23 vs B&H |
-|---|---|---|---|
-| SMA 10/40 crossover | **2.16** | 0.55 | p = 0.84 |
-| SMA 50/200 crossover | 1.67 | 0.43 | p = 0.40 |
-| 12-1 momentum | 1.45 | 0.37 | p = 0.36 |
-| Vol-target 10% (no model) | 1.67 | 0.74 | p = 0.41 |
-| Buy & Hold SPY | 1.79 | 0.61 | — |
-| Walk-forward price HMM (M1) | 1.65 | **1.03** | p = 0.26–0.32 |
+| No-HMM price rule | 2023 Sharpe |
+|---|---|
+| SMA 50/200 crossover (canonical) | 1.67 |
+| Vol-target 10% (no model) | 1.72 |
+| SMA 10/40 (parameter-sensitivity footnote) | 2.16 |
+| Buy & Hold SPY | 1.79 |
+| 60/40 | 1.75 |
 
-The punchline pair: **on 2023 alone, a dumb 10/40 SMA crossover (2.16) beats
-every HMM+sentiment model (best 2.11)** — the single-year ranking is noise.
-Over 9 years the ordering flips: every naive rule *underperforms* B&H
-(0.37–0.55) while the walk-forward HMM posts 1.03. Head-to-head, the
-walk-forward HMM vs SMA 10/40 on 2015–2023: Sharpe difference 0.48
-annualized, JK p = 0.14, bootstrap p = 0.12, CI (−0.008, +0.070) — the
-largest and most consistent edge found in this study, and still short of
-conventional significance.
+The SMA 10/40 number is **not evidence of a good strategy** — it is a single-year
+parameter-sensitivity illustration: the canonical 50/200 loses to B&H (1.67 vs
+1.79), while a hand-picked faster pair looks brilliant in exactly one year.
+Over 2015–2023 (out-of-sample by construction), all SMA/momentum rules
+*underperform* B&H (0.37–0.55 vs 0.61); only pure vol-targeting edges it (0.74).
+
+**Walk-forward (out-of-sample) 2023 zoo** — every model refit monthly on prior
+data only, so these numbers carry no in-sample optimism:
+
+| Model (OOS) | Switch | MVO | Prob-wt | Hysteresis | Vol-target |
+|---|---|---|---|---|---|
+| **M3 FinBERT HMM** | **2.26** | 2.04 | 2.24 | 2.26 | 0.16 |
+| M4 FinBERT PCA | 1.94 | 1.75 | 1.92 | 1.94 | 0.07 |
+| M8 FinMatcha PCA | 2.01 | 1.74 | 2.09 | 2.01 | 0.10 |
+| M5 VADER HMM | 1.86 | 1.65 | 1.81 | 1.86 | 0.00 |
+| M6 VADER PCA | 1.87 | 1.75 | 1.87 | 1.87 | 0.04 |
+| M7 FinMatcha HMM | 1.65 | 1.88 | 1.68 | 1.65 | −0.03 |
+| **M1/M2 price HMM** | 1.65 | 2.10 | 1.72 | 1.65 | −0.00 |
+| SMA 50/200 (no HMM) | 1.67 | — | — | — | — |
+| Buy & Hold SPY | 1.79 | — | — | — | — |
+| 60/40 | 1.75 | — | — | — | — |
+
+Significance (JK-Memmel + block bootstrap, Holm-corrected): **nothing survives.**
+M3 FinBERT vs price-HMM: +0.038 daily Sharpe, p = 0.26/0.15, Holm 1.0. M3 vs
+B&H: p = 0.14/0.24. FinMatcha HMM vs price-HMM: +0.0001, p = 0.997 — under
+walk-forward refitting, FinMatcha sentiment contributes literally nothing.
+Price-HMM vs B&H: negative (p = 0.75).
 
 
 

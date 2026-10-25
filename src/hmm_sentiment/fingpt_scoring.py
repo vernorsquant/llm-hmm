@@ -36,14 +36,29 @@ def _text_key(text):
 
 
 def _load_cache():
+    """Load cached scores: JSONL (last occurrence wins — later runs supersede
+    earlier ones for the same headline key), then parquet keys not in JSONL.
+    Degenerate all-zero rows (broken-model artifacts) are sanitized to neutral."""
     cache = {}
+    jsonl = _CACHE_FILE.replace(".parquet", ".jsonl")
+    if os.path.exists(jsonl):
+        with open(jsonl) as f:
+            for line in f:
+                try:
+                    rec = json.loads(line)
+                    vec = np.array([rec["P_pos"], rec["P_neu"], rec["P_neg"]], dtype=float)
+                    if vec.sum() <= 0:
+                        vec = np.array([0.0, 1.0, 0.0])
+                    cache[rec["key"]] = vec
+                except Exception:
+                    continue
     try:
         cached = pd.read_parquet(_CACHE_FILE)
         for k, p in zip(cached["key"], cached[["P_pos", "P_neu", "P_neg"]].values):
             vec = np.asarray(p, dtype=float)
             if vec.sum() <= 0:
                 vec = np.array([0.0, 1.0, 0.0])
-            cache[k] = vec
+            cache.setdefault(k, vec)
     except Exception:
         pass
     return cache
