@@ -207,7 +207,30 @@ crash avoidance, not bull-market riding.
 
 Tables: `outputs/tables/long_backtest_{summary,years,significance}.csv`.
 
-## Key engineering findings (negative results included)
+## Price-only zoo: no HMM, no sentiment (`scripts/run_price_only_zoo.py`)
+
+Naive price rules with **no fitted parameters** (so no in-sample optimism at all),
+same cost model:
+
+| Strategy | 2023 Sharpe | 2015–2023 Sharpe | 2015–23 vs B&H |
+|---|---|---|---|
+| SMA 10/40 crossover | **2.16** | 0.55 | p = 0.84 |
+| SMA 50/200 crossover | 1.67 | 0.43 | p = 0.40 |
+| 12-1 momentum | 1.45 | 0.37 | p = 0.36 |
+| Vol-target 10% (no model) | 1.67 | 0.74 | p = 0.41 |
+| Buy & Hold SPY | 1.79 | 0.61 | — |
+| Walk-forward price HMM (M1) | 1.65 | **1.03** | p = 0.26–0.32 |
+
+The punchline pair: **on 2023 alone, a dumb 10/40 SMA crossover (2.16) beats
+every HMM+sentiment model (best 2.11)** — the single-year ranking is noise.
+Over 9 years the ordering flips: every naive rule *underperforms* B&H
+(0.37–0.55) while the walk-forward HMM posts 1.03. Head-to-head, the
+walk-forward HMM vs SMA 10/40 on 2015–2023: Sharpe difference 0.48
+annualized, JK p = 0.14, bootstrap p = 0.12, CI (−0.008, +0.070) — the
+largest and most consistent edge found in this study, and still short of
+conventional significance.
+
+
 
 1. **Corpus-coverage artifact (caught and fixed).** In the first build, M3/M4's
    "bear" state was the *zero-news-coverage* state: 587/631 trading days had no
