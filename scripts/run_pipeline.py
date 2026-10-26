@@ -21,6 +21,7 @@ from hmm_sentiment.config import (
     TABLE_DIR,
 )
 from hmm_sentiment.daily_features import build_daily_news_features, map_articles_to_trading_days
+from hmm_sentiment.fingpt_scoring import fingpt_scores
 from hmm_sentiment.finbert_scoring import score_articles
 from hmm_sentiment.llm_importance import rate_importance
 from hmm_sentiment.market_data import fetch_market_data
@@ -60,6 +61,10 @@ def build_features():
     v_scored = vader_scores(news)
     v_scored["importance"] = rate_importance(v_scored["headline"].tolist())  # all cached
 
+    log_step("FinMatcha scoring (baseline)")
+    f_scored = fingpt_scores(news)
+    f_scored["importance"] = rate_importance(f_scored["headline"].tolist())  # all cached
+
     log_step("close-safeguard mapping + daily features")
     merged = map_articles_to_trading_days(scored, market.index)
     daily_news = build_daily_news_features(merged, market.index)
@@ -72,6 +77,11 @@ def build_features():
 
     feat = market.join(daily_news, how="left")
     feat = feat.join(v_daily[["sent_w_v", "sent_w_ema5_v", "sent_disp_v"]], how="left")
+    f_merged = map_articles_to_trading_days(f_scored, market.index)
+    f_daily = build_daily_news_features(f_merged, market.index).rename(
+        columns={"sent_w": "sent_w_f", "sent_w_ema5": "sent_w_ema5_f", "sent_disp": "sent_disp_f"}
+    )
+    feat = feat.join(f_daily[["sent_w_f", "sent_w_ema5_f", "sent_disp_f"]], how="left")
     log_step(f"features rows={len(feat)} cols={list(feat.columns)}")
     return market, feat, merged, scored
 

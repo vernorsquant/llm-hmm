@@ -47,18 +47,31 @@ def daily_weighted_sentiment(s_raw, weights):
     return float(np.sum(s_raw * weights) / (np.sum(weights) + 1e-6))
 
 
-def build_daily_news_features(articles_scored, trading_days):
+def build_daily_news_features(articles_scored, trading_days, weighted=None):
     """Aggregate scored articles to daily features aligned on `trading_days`.
 
     Required article columns: trading_date, S_raw, confidence, importance.
     Output columns: sent_w, sent_w_ema5, hi_imp_volume, sent_disp, n_articles.
+
+    `weighted` (default: config.WEIGHTED_SENTIMENT) selects the aggregation:
+      - True: S_t = sum(S_raw_i * C_i * I_i) / (sum C_i * I_i + 1e-6)
+      - False: plain unweighted mean of S_raw (current default — the article
+        weighting mechanism is disabled pending importance calibration; all
+        scores stay cached and the mechanism is one flag away).
     """
+    from . import config as _config
     from .scoring import article_weights
+
+    if weighted is None:
+        weighted = _config.WEIGHTED_SENTIMENT
 
     td = pd.DatetimeIndex(trading_days).normalize()
     arts = articles_scored.copy()
     arts["trading_date"] = pd.DatetimeIndex(arts["trading_date"]).normalize()
-    arts["weight"] = article_weights(arts["confidence"].values, arts["importance"].values)
+    if weighted:
+        arts["weight"] = article_weights(arts["confidence"].values, arts["importance"].values)
+    else:
+        arts["weight"] = 1.0
 
     # Dedupe identical headlines mapping to the SAME trading day: the corpus
     # dedupes on (headline, window), but overlapping GDELT windows refetch the

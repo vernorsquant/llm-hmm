@@ -72,6 +72,10 @@ def run():
                          "trades": None, "jk_p": jk["p_value"], "boot_p": boot["p_value"]})
 
     df = pd.DataFrame(rows)
+    # Holm across this script's 6-test family (3 rules x 2 windows)
+    from hmm_sentiment.stats_tests import holm_correction
+    sig_mask = df["strategy"].str.startswith("SIG ")
+    df.loc[sig_mask, "holm_p"] = holm_correction(df.loc[sig_mask, "jk_p"].values)
     df.to_csv(f"{TABLE_DIR}/price_only_zoo.csv", index=False)
     show = [c for c in ["window", "strategy", "ann_return", "ann_vol", "sharpe", "max_drawdown", "trades", "jk_p", "boot_p"] if c in df.columns]
     print(df[show].round(3).to_string(index=False))

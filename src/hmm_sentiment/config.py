@@ -27,5 +27,13 @@ SVB_WINDOW_END = "2023-03-31"
 
 ASSETS = ["SPY", "IEF"]
 
+# Article weighting mechanism: when False (current default), daily sentiment is
+# a plain unweighted mean of S_raw across the day's articles. The importance x
+# confidence weighting (W = C_i * I_i) remains implemented in
+# daily_features.build_daily_news_features and all scores stay cached — flip to
+# True to re-enable. Disabled for now pending a reproducible importance
+# calibration (the Qwen rater collapses to a {0, 0.5, 1.0} ordinal).
+WEIGHTED_SENTIMENT = False
+
 for _d in (DATA_DIR, RAW_DIR, CACHE_DIR, OUT_DIR, FIG_DIR, TABLE_DIR):
     os.makedirs(_d, exist_ok=True)

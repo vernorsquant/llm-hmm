@@ -13,17 +13,25 @@ The original research proposal lives at [`docs/RESEARCH_PROPOSAL.md`](docs/RESEA
 | Buy & Hold SPY | 25.3% | 13.1% | 1.79 | −10.1% | 2.50 | — |
 | 60/40 Static | 16.3% | 8.8% | 1.75 | −8.4% | 1.94 | — |
 | M1 Price HMM [Switch] | 23.3% | 11.5% | 1.89 | −10.1% | 2.30 | 17d (carried-in) |
-| M1 Price HMM [MVO] | 25.3% | 13.1% | 1.79 | −10.1% | 2.50 | 17d |
+| M1 Price HMM [MVO] | 10.8% | 9.4% | 1.00 | −10.1% | 1.07 | 17d |
 | M2 Price PCA-HMM [Switch] | 23.3% | 11.5% | 1.89 | −10.1% | 2.30 | 17d (carried-in) |
-| M2 Price PCA-HMM [MVO] | 25.3% | 13.1% | 1.79 | −10.1% | 2.50 | 17d |
-| **M3 Sentiment HMM [Switch]** | **29.5%** | 12.7% | **2.11** | **−8.3%** | **3.57** | none |
-| M3 Sentiment HMM [MVO] | 19.7% | 10.9% | 1.71 | −9.5% | 2.07 | none |
-| **M4 Sentiment PCA-HMM [Switch]** | 29.2% | 12.6% | **2.10** | −8.5% | 3.43 | none |
-| M4 Sentiment PCA-HMM [MVO] | 19.3% | 10.8% | 1.69 | −9.6% | 2.00 | none |
-| M5 VADER HMM [Switch] | 26.8% | 12.9% | 1.91 | −10.1% | 2.64 | none |
-| M5 VADER HMM [MVO] | 22.7% | 11.8% | 1.79 | −9.6% | 2.35 | none |
-| M6 VADER PCA-HMM [Switch] | 28.3% | 12.7% | 2.02 | −9.1% | 3.10 | none |
-| M6 VADER PCA-HMM [MVO] | 20.3% | 11.0% | 1.73 | −9.6% | 2.11 | none |
+| M2 Price PCA-HMM [MVO] | 10.8% | 9.4% | 1.00 | −10.1% | 1.07 | 17d |
+| **M3 Sentiment HMM [Switch]** | **28.5%** | 12.4% | **2.04** | **−9.0%** | **3.17** | none |
+| M3 Sentiment HMM [MVO] | 3.2% | 9.7% | 0.38 | −10.3% | 0.31 | none |
+| **M4 Sentiment PCA-HMM [Switch]** | **29.2%** | 12.6% | **2.10** | −8.5% | 3.43 | none |
+| M4 Sentiment PCA-HMM [MVO] | 3.2% | 9.7% | 0.38 | −10.3% | 0.31 | none |
+| M5 VADER HMM [Switch] | 28.3% | 12.5% | 2.03 | −9.1% | 3.11 | none |
+| M5 VADER HMM [MVO] | 3.2% | 9.7% | 0.38 | −10.3% | 0.31 | none |
+| M6 VADER PCA-HMM [Switch] | 26.8% | 12.7% | 1.91 | −10.1% | 2.65 | none |
+| M6 VADER PCA-HMM [MVO] | 3.2% | 9.7% | 0.38 | −10.3% | 0.31 | none |
+| M7 FinMatcha HMM [Switch] | 26.2% | 12.6% | 1.88 | −10.6% | 2.47 | none |
+| M7 FinMatcha HMM [MVO] | 3.2% | 9.7% | 0.38 | −10.3% | 0.31 | none |
+| M8 FinMatcha PCA-HMM [Switch] | 27.4% | 12.2% | 1.96 | −9.8% | 2.81 | none |
+| M8 FinMatcha PCA-HMM [MVO] | 3.2% | 9.7% | 0.38 | −10.3% | 0.31 | none |
+
+(In-sample switch/MVO numbers, **unweighted** daily sentiment, expanding-moment
+MVO with one-sided costs. The decision-grade out-of-sample walk-forward numbers
+are in the zoo section below.)
 
 ![Cumulative returns](outputs/figures/cumulative_returns_all_models.png)
 
@@ -228,34 +236,27 @@ Over 2015–2023 (out-of-sample by construction), all SMA/momentum rules
 
 **Walk-forward (out-of-sample) 2023 zoo** — every model refit monthly on prior
 data only, posteriors are CAUSAL filtered (no smoothing leak), deduped corpus,
-neutral-confidence caps active, MVO on expanding prior-only moments, one-sided
+**unweighted** daily sentiment, MVO on expanding prior-only moments, one-sided
 5 bps costs for all strategies:
 
 | Model (OOS) | Switch | MVO | Prob-wt | Hysteresis | Vol-target |
 |---|---|---|---|---|---|
-| **M7 FinMatcha HMM** | **2.16** | 0.96 | 2.16 | 2.16 | 0.13 |
-| M8 FinMatcha PCA | 0.87 | 0.27 | 0.85 | 0.87 | −0.42 |
-| **M3 FinBERT HMM** | 2.08 | 1.11 | 2.13 | 2.08 | 0.12 |
-| M4 FinBERT PCA | 1.03 | −0.05 | 1.02 | 1.03 | −0.36 |
-| M5 VADER HMM | 2.01 | 0.75 | 1.98 | 2.01 | 0.00 |
-| M6 VADER PCA | 0.64 | 0.14 | 0.64 | 0.64 | −0.48 |
-| **M1/M2 price HMM** | 1.57–1.82 | 0.28–0.38 | 1.62–1.72 | 1.55–1.82 | −0.01 |
-| SMA 50/200 (no HMM) | 1.67 | — | — | — | — |
+| NO-HMM SMA 10/40 (param-sensitivity) | **2.16** | — | — | — | — |
+| M5 VADER HMM | 2.09 | 0.75 | 2.09 | 2.09 | 0.00 |
+| **M3 FinBERT HMM** | 2.04 | 0.38 | 2.04 | 2.04 | 0.12 |
+| M7 FinMatcha HMM | 1.84 | 0.96 | 1.87 | 1.84 | 0.13 |
+| **M1 Price HMM** | 1.82 | — | 1.72 | 1.82 | −0.01 |
 | Buy & Hold SPY | 1.79 | — | — | — | — |
-| 60/40 | 1.73 | — | — | — | — |
+| M2 Price PCA-HMM | 1.57 | 0.28 | 1.62 | 1.57 | −0.01 |
+| SMA 50/200 (no HMM) | 1.67 | — | — | — | — |
+| 60/40 (no HMM) | 1.73 | — | — | — | 0.17 (vol-tgt only) |
 
-**Significance: nothing survives, and the bar is enormous.** All five tested
-pairs: JK-Memmel p 0.14–0.99, bootstrap p 0.15–0.99, Holm 1.0. The
-minimum-detectable annualized Sharpe difference at 80% power in a 250-day
-window is **0.91–1.67** — a realistic 0.3-annualized edge has only ~5% power
-(auditor Monte-Carlo: 5.4% at T=252, 16% at T=2260). Non-rejections in this
-table are uninformative, not evidence of parity.
-
-**The honest mechanism statement:** after removing every artifact (smoothing
-leak, coverage double-count, neutral-confidence inflation, MVO lookahead,
-cost-convention bias), the sentiment models rank FinMatcha ≈ SMA-10/40-artifact
-≈ FinBERT > VADER ≈ price-HMM ≈ B&H, with MVO strictly dominated. The spread
-between sentiment models and the price baseline is within one year's noise.
+Significance (JK-Memmel + block bootstrap, Holm-corrected): **nothing survives.**
+M3 FinBERT vs price-HMM: +0.014 daily Sharpe, p = 0.70/0.39, Holm 1.0. M3 vs
+B&H: p = 0.32/0.23. The minimum-detectable annualized Sharpe difference at 80%
+power in a 250-day window is **0.69–1.88** — a realistic 0.3-annualized edge
+has ~5% power (auditor Monte-Carlo: 5.4% at T=252, 16% at T=2260).
+Non-rejections in this table are uninformative, not evidence of parity.
 
 
 

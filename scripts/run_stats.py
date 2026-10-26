@@ -211,8 +211,9 @@ def main():
     print("McNemar (all-days discordant bear flags, M3-only vs M1-only):", mc)
 
     print("\nIS/OOS table:\n", perf.to_string(index=False))
-    print("\nSignificance (IS):\n", stats_df[stats_df["mode"] == "IS"].to_string(index=False))
-    print("\nSignificance (OOS):\n", stats_df[stats_df["mode"] == "OOS"].to_string(index=False))
+    print("\nSignificance (2023 OOS only — IS rows are diagnostic only and are "
+          "excluded from significance output, audit finding):\n",
+          stats_df[stats_df["mode"] == "OOS"].to_string(index=False))
 
 
 if __name__ == "__main__":

@@ -2,12 +2,12 @@
   "M1_price_hmm": {
     "transmat": [
       [
-        0.9937573450787535,
-        0.006242654921246568
+        0.9937573741605954,
+        0.006242625839404733
       ],
       [
-        0.006815909934905014,
-        0.9931840900650949
+        0.006815886099229819,
+        0.9931841139007702
       ]
     ],
     "converged": true,
@@ -20,16 +20,16 @@
   "M2_price_pca_hmm": {
     "transmat": [
       [
-        0.9937578010223865,
-        0.006242198977613367
+        0.9937578301640967,
+        0.0062421698359033835
       ],
       [
-        0.006815518105806095,
-        0.993184481894194
+        0.006815494218485061,
+        0.993184505781515
       ]
     ],
     "converged": true,
-    "pca_explained_variance": 1.0000000000000002,
+    "pca_explained_variance": 1.0,
     "lead_days_svb": 17,
     "lead_entry_date": null,
     "lead_carried_in": true,
@@ -38,12 +38,12 @@
   "M3_sent_hmm": {
     "transmat": [
       [
-        0.9949494474773912,
-        0.005050552522608876
+        0.9949400835203317,
+        0.005059916479668259
       ],
       [
-        0.004273436297078136,
-        0.9957265637029218
+        0.004260094827990112,
+        0.9957399051720098
       ]
     ],
     "converged": true,
@@ -51,21 +51,21 @@
     "lead_days_svb": null,
     "lead_entry_date": null,
     "lead_carried_in": false,
-    "bear_days_in_2023": 15
+    "bear_days_in_2023": 12
   },
   "M4_sent_pca_hmm": {
     "transmat": [
       [
-        0.995033441039301,
-        0.0049665589606990405
+        0.9950358672259525,
+        0.004964132774047481
       ],
       [
-        0.004399344191412231,
-        0.9956006558085878
+        0.004403155549061252,
+        0.9955968444509387
       ]
     ],
     "converged": true,
-    "pca_explained_variance": 0.9503757848143026,
+    "pca_explained_variance": 0.9512218920223464,
     "lead_days_svb": null,
     "lead_entry_date": null,
     "lead_carried_in": false,
@@ -74,12 +74,12 @@
   "M5_vader_hmm": {
     "transmat": [
       [
-        0.9973958333331634,
-        0.0026041666668365966
+        0.9957471640785458,
+        0.004252835921454215
       ],
       [
-        4.236332369722883e-62,
-        1.0
+        0.0050650506531890365,
+        0.9949349493468109
       ]
     ],
     "converged": true,
@@ -87,27 +87,63 @@
     "lead_days_svb": null,
     "lead_entry_date": null,
     "lead_carried_in": false,
-    "bear_days_in_2023": 3
+    "bear_days_in_2023": 14
   },
   "M6_vader_pca_hmm": {
     "transmat": [
       [
-        0.9949601698841832,
-        0.005039830115816876
+        1.0,
+        1.1345132413821552e-41
       ],
       [
-        0.004288877758349953,
-        0.99571112224165
+        0.002604166666749776,
+        0.9973958333332502
       ]
     ],
     "converged": true,
-    "pca_explained_variance": 0.9802487255384982,
+    "pca_explained_variance": 0.976671742408938,
     "lead_days_svb": null,
     "lead_entry_date": null,
     "lead_carried_in": false,
-    "bear_days_in_2023": 13
+    "bear_days_in_2023": 3
   },
-  "posterior_corr::M3_sent_hmm::M5_vader_hmm": 0.9605,
-  "posterior_corr::M4_sent_pca_hmm::M6_vader_pca_hmm": 0.9716,
-  "posterior_corr::M1_price_hmm::M3_sent_hmm": 0.4024
+  "M7_fingpt_hmm": {
+    "transmat": [
+      [
+        0.9948849113917398,
+        0.0051150886082601205
+      ],
+      [
+        0.004184101629997751,
+        0.9958158983700023
+      ]
+    ],
+    "converged": true,
+    "pca_explained_variance": 1.0,
+    "lead_days_svb": null,
+    "lead_entry_date": null,
+    "lead_carried_in": false,
+    "bear_days_in_2023": 10
+  },
+  "M8_fingpt_pca_hmm": {
+    "transmat": [
+      [
+        0.9948981726121552,
+        0.005101827387844851
+      ],
+      [
+        0.004201970262853189,
+        0.9957980297371468
+      ]
+    ],
+    "converged": true,
+    "pca_explained_variance": 0.9588224573224301,
+    "lead_days_svb": null,
+    "lead_entry_date": null,
+    "lead_carried_in": false,
+    "bear_days_in_2023": 11
+  },
+  "posterior_corr::M3_sent_hmm::M5_vader_hmm": 0.9943,
+  "posterior_corr::M4_sent_pca_hmm::M6_vader_pca_hmm": 0.9385,
+  "posterior_corr::M1_price_hmm::M3_sent_hmm": 0.4116
 }
