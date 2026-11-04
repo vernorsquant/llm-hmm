@@ -1,0 +1,85 @@
+{
+  "backend": {
+    "backend": "openrouter",
+    "model": "meta-llama/llama-3.1-8b-instruct",
+    "labeler_version": 2
+  },
+  "articles_total": 2117,
+  "articles_used": 2116,
+  "label_coverage_after_drop": 0.9995,
+  "dropped_degenerate_articles": 1,
+  "cache_finals_total_all_backends": 4230,
+  "mean_criteria_per_article": 4.0,
+  "finbert_sent_w_std": 0.2659,
+  "labeler_sent_w_std": 0.1721,
+  "finbert_abs_gt_0p5_frac": 0.076,
+  "labeler_abs_gt_0p5_frac": 0.104,
+  "finbert_days_covered": 90,
+  "labeler_days_covered": 90,
+  "transmat::M9_lbl_hmm": [
+    [
+      0.9948972901203703,
+      0.005102709879629752
+    ],
+    [
+      0.004200773468918632,
+      0.9957992265310814
+    ]
+  ],
+  "converged::M9_lbl_hmm": true,
+  "transmat::M10_lbl_pca_hmm": [
+    [
+      0.994945428639647,
+      0.005054571360353037
+    ],
+    [
+      0.004267694240865758,
+      0.9957323057591342
+    ]
+  ],
+  "converged::M10_lbl_pca_hmm": true,
+  "posterior_corr::M9_lbl_hmm::M3_sent_hmm": 0.8606,
+  "posterior_corr_oos::M9_lbl_hmm::M3_sent_hmm": 0.8144,
+  "posterior_corr::M9_lbl_hmm::M7_fingpt_hmm": 0.9467,
+  "posterior_corr_oos::M9_lbl_hmm::M7_fingpt_hmm": 0.8668,
+  "posterior_corr::M9_lbl_hmm::M1_price_hmm": 0.0334,
+  "posterior_corr_oos::M9_lbl_hmm::M1_price_hmm": -0.0407,
+  "posterior_corr::M3_sent_hmm::M7_fingpt_hmm": 0.909,
+  "posterior_corr_oos::M3_sent_hmm::M7_fingpt_hmm": 0.7868,
+  "svb_lead_days": {
+    "M1_price_hmm": 0,
+    "M2_price_pca_hmm": 0,
+    "M3_sent_hmm": null,
+    "M4_sent_pca_hmm": null,
+    "M5_vader_hmm": 17,
+    "M6_vader_pca_hmm": 17,
+    "M7_fingpt_hmm": null,
+    "M8_fingpt_pca_hmm": null,
+    "M9_lbl_hmm": null,
+    "M10_lbl_pca_hmm": null
+  },
+  "svb_lead_carried_in": {
+    "M1_price_hmm": false,
+    "M2_price_pca_hmm": false,
+    "M3_sent_hmm": false,
+    "M4_sent_pca_hmm": false,
+    "M5_vader_hmm": true,
+    "M6_vader_pca_hmm": true,
+    "M7_fingpt_hmm": false,
+    "M8_fingpt_pca_hmm": false,
+    "M9_lbl_hmm": false,
+    "M10_lbl_pca_hmm": false
+  },
+  "stress_f1_vix25": {
+    "M1_price_hmm": 0.545,
+    "M2_price_pca_hmm": 0.545,
+    "M3_sent_hmm": 0.0,
+    "M4_sent_pca_hmm": 0.0,
+    "M5_vader_hmm": 0.0,
+    "M6_vader_pca_hmm": 0.0,
+    "M7_fingpt_hmm": 0.0,
+    "M8_fingpt_pca_hmm": 0.0,
+    "M9_lbl_hmm": 0.0,
+    "M10_lbl_pca_hmm": 0.0
+  }
+}

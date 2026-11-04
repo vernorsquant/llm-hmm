@@ -73,16 +73,21 @@ def build_daily_news_features(articles_scored, trading_days, weighted=None):
     else:
         arts["weight"] = 1.0
 
+    # Articles with NaN S_raw (failed/unavailable labels) are EXCLUDED before
+    # aggregation: a single NaN would propagate through daily_weighted_sentiment
+    # and poison the whole day's sentiment (audit MAJOR-3).
+    arts_labeled = arts.dropna(subset=["S_raw"])
+
     # Dedupe identical headlines mapping to the SAME trading day: the corpus
     # dedupes on (headline, window), but overlapping GDELT windows refetch the
     # same article into multiple windows, double-counting weight on the event
     # days this pipeline cares about (up to 7x on some FOMC days).
-    dedupe_cols = [c for c in ("headline", "trading_date") if c in arts.columns]
+    dedupe_cols = [c for c in ("headline", "trading_date") if c in arts_labeled.columns]
     if dedupe_cols:
-        arts = arts.drop_duplicates(subset=dedupe_cols)
+        arts_labeled = arts_labeled.drop_duplicates(subset=dedupe_cols)
 
     out = pd.DataFrame(index=td)
-    grouped = arts.groupby("trading_date")
+    grouped = arts_labeled.groupby("trading_date")
     sent = {}
     disp = {}
     hiv = {}
@@ -102,5 +107,6 @@ def build_daily_news_features(articles_scored, trading_days, weighted=None):
     out["sent_w_ema5"] = out["sent_w"].ewm(span=5, adjust=False).mean()
     out["hi_imp_volume"] = pd.Series(hiv).reindex(td).fillna(0).astype(float)
     out["sent_disp"] = pd.Series(disp).reindex(td).ffill(limit=10).fillna(0.0)
-    out["n_articles"] = pd.Series(nart).reindex(td).fillna(0).astype(float)
+    out["n_articles"] = arts.groupby("trading_date").size().reindex(td).fillna(0).astype(float)
+    out["n_labeled"] = pd.Series(nart).reindex(td).fillna(0).astype(float)
     return out

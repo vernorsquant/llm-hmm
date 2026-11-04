@@ -171,8 +171,13 @@ def filtered_month_posterior(train_feat, month_feat, cols, use_pca, random_state
     tail = Xtr[-warmup_rows:]
     Xall = np.vstack([tail, Xmo])
 
-    # canonicalization from TRAIN only (mirror of _fit_one)
-    vix_col_train = Xtr[:, cols.index("VIX_close")]
+    # canonicalization from TRAIN only, computed in the STANDARDIZED (pre-PCA)
+    # space exactly like _fit_one — Xtr here is PCA-rotated when use_pca, and
+    # indexing Xtr with cols.index("VIX_close") would read a rotated component
+    # (PC3), not VIX, silently flipping bull/bear in some refits (audit CRITICAL).
+    Xtr_raw = train_feat[cols].astype(float)
+    valid_tr = Xtr_raw.notna().all(axis=1).values
+    vix_col_train = scaler.transform(Xtr_raw.values[valid_tr])[:, cols.index("VIX_close")]
     states_raw = hmm.predict(Xtr)
     mean_vix = {k: vix_col_train[states_raw == k].mean() for k in (0, 1)}
     bear_raw = max(mean_vix, key=mean_vix.get)

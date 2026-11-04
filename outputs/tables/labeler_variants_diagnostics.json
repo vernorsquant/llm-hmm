@@ -1,0 +1,26 @@
+{
+  "big_model": "deepseek/deepseek-v4.1-flash-1017",
+  "small_model": "meta-llama/llama-3.1-8b-instruct",
+  "labeler_version": 2,
+  "coverage": {
+    "lbl8": 0.9995276334435522
+  },
+  "posterior_corr_oos": {
+    "M13_hybrid_hmm::M3_sent_hmm": 0.515,
+    "M13_hybrid_hmm::M9_lbl_hmm": 0.5718
+  },
+  "svb_lead_days": {
+    "M1_price_hmm": 0,
+    "M3_sent_hmm": null,
+    "M9_lbl_hmm": null,
+    "M13_hybrid_hmm": null,
+    "M16_hybrid_pca_hmm": null
+  },
+  "stress_f1_vix25": {
+    "M1_price_hmm": 0.545,
+    "M3_sent_hmm": 0.0,
+    "M9_lbl_hmm": 0.0,
+    "M13_hybrid_hmm": 0.0,
+    "M16_hybrid_pca_hmm": 0.0
+  }
+}

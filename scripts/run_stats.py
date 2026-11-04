@@ -29,6 +29,7 @@ from hmm_sentiment.config import (
 )
 from hmm_sentiment.daily_features import build_daily_news_features, map_articles_to_trading_days
 from hmm_sentiment.finbert_scoring import score_articles
+from hmm_sentiment.fingpt_scoring import fingpt_scores
 from hmm_sentiment.llm_importance import rate_importance
 from hmm_sentiment.market_data import fetch_market_data
 from hmm_sentiment.metrics import max_drawdown, perf_stats
@@ -53,6 +54,8 @@ def build_features():
 
     v_scored = vader_scores(news)
     v_scored["importance"] = rate_importance(v_scored["headline"].tolist())
+    f_scored = fingpt_scores(news)
+    f_scored["importance"] = rate_importance(f_scored["headline"].tolist())
 
     merged = map_articles_to_trading_days(scored, market.index)
     daily = build_daily_news_features(merged, market.index)
@@ -60,8 +63,14 @@ def build_features():
     v_daily = build_daily_news_features(v_merged, market.index).rename(
         columns={"sent_w": "sent_w_v", "sent_w_ema5": "sent_w_ema5_v", "sent_disp": "sent_disp_v"}
     )
+    f_merged = map_articles_to_trading_days(f_scored, market.index)
+    f_daily = build_daily_news_features(f_merged, market.index).rename(
+        columns={"sent_w": "sent_w_f", "sent_w_ema5": "sent_w_ema5_f", "sent_disp": "sent_disp_f"}
+    )
     feat = market.join(daily, how="left").join(
         v_daily[["sent_w_v", "sent_w_ema5_v", "sent_disp_v"]], how="left"
+    ).join(
+        f_daily[["sent_w_f", "sent_w_ema5_f", "sent_disp_f"]], how="left"
     )
     return market, feat
 
@@ -195,6 +204,7 @@ def main():
     for name, flag in bear_flags.items():
         f1_rows.append({"model": name, "f1_vix25": stress_f1(proxy.values, flag.values),
                         "bear_days": int(flag.sum()),
+                        "bear_on_proxy_days": int(((flag == 1) & (proxy == 1)).sum()),
                         "proxy_days": int(proxy.sum())})
     m1_b, m3_b = bear_flags["M1_price_hmm"], bear_flags["M3_sent_hmm"]
     # McNemar over ALL eval days (conditioning on the proxy voids the
@@ -204,8 +214,6 @@ def main():
     c_m1_only = int(((m1_b == 1) & (m3_b == 0)).sum())
     mc = mcnemar_test(b=b_m3_only, c=c_m1_only)
     stress_df = pd.DataFrame(f1_rows)
-    stress_df["m3_bear_on_proxy_days"] = [int(((bear_flags["M3_sent_hmm"] == 1) & (proxy == 1)).sum()),
-                                          int(((bear_flags["M1_price_hmm"] == 1) & (proxy == 1)).sum())]
     stress_df.to_csv(f"{TABLE_DIR}/stress_f1.csv", index=False)
     print("STRESS F1 vs VIX>25:\n", stress_df.to_string(index=False))
     print("McNemar (all-days discordant bear flags, M3-only vs M1-only):", mc)
