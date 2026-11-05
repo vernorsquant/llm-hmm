@@ -17,6 +17,7 @@ from hmm_sentiment import backtest as bt
 from hmm_sentiment.config import COST_BPS, EVAL_END, EVAL_START, FIG_DIR
 from hmm_sentiment.daily_features import build_daily_news_features, map_articles_to_trading_days
 from hmm_sentiment.finbert_scoring import score_articles
+from hmm_sentiment.fingpt_scoring import fingpt_scores
 from hmm_sentiment.llm_importance import rate_importance
 from hmm_sentiment.market_data import fetch_market_data
 from hmm_sentiment.metrics import equity_curve, perf_stats
@@ -48,8 +49,16 @@ def main():
     v_daily = build_daily_news_features(v_merged, market.index).rename(
         columns={"sent_w": "sent_w_v", "sent_w_ema5": "sent_w_ema5_v", "sent_disp": "sent_disp_v"}
     )
+    f_scored = fingpt_scores(news)
+    f_scored["importance"] = rate_importance(f_scored["headline"].tolist())
+    f_merged = map_articles_to_trading_days(f_scored, market.index)
+    f_daily = build_daily_news_features(f_merged, market.index).rename(
+        columns={"sent_w": "sent_w_f", "sent_w_ema5": "sent_w_ema5_f", "sent_disp": "sent_disp_f"}
+    )
     feat = market.join(daily, how="left").join(
         v_daily[["sent_w_v", "sent_w_ema5_v", "sent_disp_v"]], how="left"
+    ).join(
+        f_daily[["sent_w_f", "sent_w_ema5_f", "sent_disp_f"]], how="left"
     )
 
     eval_idx = feat.loc[EVAL_START:EVAL_END].index

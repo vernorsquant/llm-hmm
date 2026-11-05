@@ -81,12 +81,15 @@ the two parents (1.96), never ahead (M13 vs M3 p = 0.80).
 | ![compression](outputs/figures/labeler_score_compression.png) | Why big models hedge toward neutral |
 | ![zoo](outputs/figures/labeler_variants_zoo.png) | Big-model arms + hybrids: wealth curves & Sharpe |
 | ![corr](outputs/figures/labeler_vs_finbert_correlation.png) | Daily series, scatter, rolling correlation vs FinBERT |
+| ![ext](outputs/figures/extended_window_finbert_vs_vader.png) | 2017–2026 extended window: FinBERT vs VADER vs price-only vs B&H |
 | ![glm corr](outputs/figures/labeler_big_vs_finbert_correlation_glm.png) | Same, GLM arm |
 | ![glm zoo](outputs/figures/labeler_variants_zoo_glm.png) | GLM-arm zoo (independent reproduction) |
 | ![lead](outputs/figures/transition_lead_time_svb.png) | Crisis-entry timing (sentiment models missed SVB) |
 | ![regimes](outputs/figures/regime_classification_comparison.png) | Regime flags on the SPY price path |
 
 ## Extended window (2017–2026): does FinBERT beat VADER with real power?
+
+![Extended window](outputs/figures/extended_window_finbert_vs_vader.png)
 
 Corpus extended to **~15,000 articles across 2017-01 → 2026-11** (10 years,
 2,454 trading days, 118 monthly walk-forward refits). Answer: **no.**
@@ -96,7 +99,7 @@ Corpus extended to **~15,000 articles across 2017-01 → 2026-11** (10 years,
 | M1 price-only HMM | 0.50 |
 | M3 FinBERT | 0.44 |
 | M5 VADER | 0.36 |
-| Buy & Hold SPY | 0.77 |
+| Buy & Hold SPY | 0.81 |
 | M12 deepseek labeler / M13 hybrid | 1.58 / 1.96 (2023-only, not comparable) |
 
 - **FinBERT vs VADER: +0.09 Sharpe, JK p = 0.66, Holm 1.0** — statistically zero
