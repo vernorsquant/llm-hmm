@@ -86,6 +86,35 @@ the two parents (1.96), never ahead (M13 vs M3 p = 0.80).
 | ![lead](outputs/figures/transition_lead_time_svb.png) | Crisis-entry timing (sentiment models missed SVB) |
 | ![regimes](outputs/figures/regime_classification_comparison.png) | Regime flags on the SPY price path |
 
+## Extended window (2017–2026): does FinBERT beat VADER with real power?
+
+Corpus extended to **~15,000 articles across 2017-01 → 2026-11** (10 years,
+2,454 trading days, 118 monthly walk-forward refits). Answer: **no.**
+
+| OOS switch Sharpe (2017–2026, net 5 bps) | Value |
+|---|---|
+| M1 price-only HMM | 0.50 |
+| M3 FinBERT | 0.44 |
+| M5 VADER | 0.36 |
+| Buy & Hold SPY | 0.77 |
+| M12 deepseek labeler / M13 hybrid | 1.58 / 1.96 (2023-only, not comparable) |
+
+- **FinBERT vs VADER: +0.09 Sharpe, JK p = 0.66, Holm 1.0** — statistically zero
+  even at 2,454 days (MDE 0.51). Scorer sophistication is second-order, confirmed
+  with power.
+- FinBERT is slightly better where it matters (stress F1 0.47 vs 0.42 vs VADER),
+  but the difference is inside noise.
+- **Nothing beats buy-and-hold** over the full window: every news-switch variant
+  underperforms B&H in point estimates. In this 10-year window the price-only
+  HMM (0.50) also *beats* both sentiment HMMs — the 2023 in-sample ordering
+  (FinBERT > price-only) does not survive out-of-sample refits.
+- Disclosures: approximate (not exact) FOMC/CPI event windows; importance
+  ratings skipped (unused under unweighted aggregation); 2017–2019 GDELT
+  coverage is sparser than 2020+.
+
+Tables: `extended_zoo.csv`, `extended_significance.csv`, `extended_yearly.csv`,
+`extended_stress_f1.csv`, `extended_diagnostics.json`.
+
 ## Honest caveats
 
 - n = 250 trading days → minimum detectable effect is 0.32–1.88 Sharpe. "Not significant"
