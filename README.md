@@ -337,30 +337,37 @@ and none lead the SVB drawdown; the price-only HMM (F1 0.545) remains the
 only model with stress detection. Full 10-model × 5-strategy tables
 (in-sample + OOS) are in `outputs/tables/labeler_zoo_*.csv`.
 
-### Variants: bigger reasoning model + FinBERT×Labeler hybrids
+### Variants: bigger reasoning models + FinBERT×Labeler hybrids
 
-`scripts/run_labeler_variants.py` adds M12/M15 (deepseek-v4.1-flash reasoning
-labels), M13/M16 (**hybrid**: FinBERT sentiment features AND 8b-labeler
-features in the same HMM), M14 (FinBERT + big-model labels), all walk-forward
-OOS on identical windows:
+`scripts/run_labeler_variants.py` adds three big-model arms (deepseek-v4.1-flash,
+glm-5.3-flash — both reasoning hybrids, full 2117/2117 coverage each) and
+**hybrids** (FinBERT sentiment features AND labeler features in the same HMM),
+all walk-forward OOS on identical windows:
 
-| OOS switch | Sharpe |
-|---|---|
-| B&H SPY | 1.79 |
-| M1 price-only | 1.82 |
-| M9 Labeler 8b | 1.87 |
-| **M13 Hybrid FinBERT+8b** | **1.96** |
-| M3 FinBERT | 2.04 |
+| OOS switch Sharpe | DeepSeek arm | GLM arm |
+|---|---|---|
+| M12 big-model labeler | **1.58** | **1.53** |
+| M14 FinBERT + big-labeler hybrid | 1.71 | 1.64 |
+| M15 big-model PCA twin | 2.00 | 1.80 |
+| M9 Labeler 8b | 1.87 | 1.87 |
+| M13 Hybrid FinBERT+8b | 1.96 | 1.96 |
+| M3 FinBERT | 2.04 | 2.04 |
+| M1 price-only | 1.82 | 1.82 |
 
-The hybrid lands **between** its two parents and does not beat FinBERT alone
-(M13 vs M3 JK p = 0.80, Holm 1.0; vs M9 p = 0.76). The 0.86 posterior
-correlation is M9-vs-M3 — the two scorers extract nearly the same news signal
-— while the hybrid's own OOS posteriors sit farther from FinBERT (corr 0.52),
-so its insignificance holds despite divergent posteriors, not because of
-identity. Big-model (M12/M14/M15) and big-hybrid arms are pending OpenRouter
-credits (labels 39.9% complete, 844/2117; the run resumes from cache when
-credits are added). Tables: `labeler_variants_*.csv`; figure:
-`labeler_variants_zoo.png`.
+**Bigger models made the labeler worse — independently reproduced across two
+model families.** Both big-model labelers (1.53–1.58) underperform the 8b
+labeler (1.87) and FinBERT (2.04); their posteriors diverge from the 8b ones
+(OOS corr 0.48), so this is not a labeling-noise artifact. Every hybrid also
+lands below FinBERT alone (M13 vs M3 p = 0.80; M14 vs M3 p = 0.52; M13 vs M9
+p = 0.76; all Holm ≥ 0.77) — combining scorers adds no information over
+FinBERT by itself. The mechanism read stands: rubric decomposition recovers
+the same news signal FinBERT already provides, and scaling model size moves
+the labels *away* from the informative structure rather than adding edge.
+The DeepSeek arm cost $0.50 of OpenRouter credit (cost-capped run; reasoning
+disabled for predictable output). The GLM arm ran on the z.ai plan.
+Tables: `labeler_variants_*.csv` (canonical/deepseek) and `*_glm.csv`
+(GLM reproduction); figures: `labeler_variants_zoo.png`,
+`labeler_big_vs_finbert_correlation*.png`.
 
 Figures: `outputs/figures/labeler_vs_finbert_correlation.png` (daily series
 overlay + scatter + rolling correlation) and

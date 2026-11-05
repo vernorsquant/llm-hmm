@@ -1,0 +1,36 @@
+{
+  "big_model": "glm-5.3-flash",
+  "small_model": "meta-llama/llama-3.1-8b-instruct",
+  "labeler_version": 2,
+  "coverage": {
+    "lbl8": 0.9995276334435522,
+    "lblbig": 1.0
+  },
+  "posterior_corr_oos": {
+    "M12_lblbig_hmm::M9_lbl_hmm": 0.4722,
+    "M12_lblbig_hmm::M3_sent_hmm": 0.4739,
+    "M13_hybrid_hmm::M3_sent_hmm": 0.515,
+    "M13_hybrid_hmm::M9_lbl_hmm": 0.5718,
+    "M14_hybridbig_hmm::M13_hybrid_hmm": 0.5474
+  },
+  "svb_lead_days": {
+    "M1_price_hmm": 0,
+    "M3_sent_hmm": null,
+    "M9_lbl_hmm": null,
+    "M12_lblbig_hmm": 17,
+    "M13_hybrid_hmm": null,
+    "M14_hybridbig_hmm": 17,
+    "M15_lblbig_pca_hmm": null,
+    "M16_hybrid_pca_hmm": null
+  },
+  "stress_f1_vix25": {
+    "M1_price_hmm": 0.545,
+    "M3_sent_hmm": 0.0,
+    "M9_lbl_hmm": 0.0,
+    "M12_lblbig_hmm": 0.0,
+    "M13_hybrid_hmm": 0.0,
+    "M14_hybridbig_hmm": 0.0,
+    "M15_lblbig_pca_hmm": 0.0,
+    "M16_hybrid_pca_hmm": 0.0
+  }
+}

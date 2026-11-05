@@ -54,6 +54,7 @@ from run_labeler_zoo import strategy_return
 from run_long_backtest import month_posterior
 
 BIG_MODEL = os.getenv("LLM_LABELER_BIG_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+BIG_BACKEND = os.getenv("LLM_LABELER_BIG_BACKEND", "openrouter")
 SMALL_MODEL = "meta-llama/llama-3.1-8b-instruct"
 # SKIP_BIG=1 runs the hybrid/PCA arms only (big-model labels unavailable, e.g.
 # OpenRouter credits exhausted). Feature sets for missing variants are dropped.
@@ -87,7 +88,7 @@ def build_features():
     lbl8["importance"] = rate_importance(lbl8["headline"].tolist())
     lblbig = None
     if not SKIP_BIG:
-        lblbig = labeler_scores(news, backend="openrouter", model=BIG_MODEL, max_workers=16)
+        lblbig = labeler_scores(news, backend=BIG_BACKEND, model=BIG_MODEL, max_workers=16)
         lblbig["importance"] = rate_importance(lblbig["headline"].tolist())
 
     # drop degenerate articles (degraded/missing labels -> NaN) BEFORE daily

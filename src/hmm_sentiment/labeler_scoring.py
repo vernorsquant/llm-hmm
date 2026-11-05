@@ -64,6 +64,17 @@ BULL_THRESHOLD = 1.5
 BEAR_THRESHOLD = -1.5
 MAX_CRITERIA = 4
 
+# Optional hard spend cap for OpenRouter runs: cumulative usage.cost across all
+# calls in this process; when projection exceeds the cap, calls raise and the
+# affected articles stay uncached (rerun resumes). $0/absent = no cap.
+COST_CAP = float(os.getenv("LLM_LABELER_COST_CAP") or 0)
+_SPENT_LOCK = threading.Lock()
+_SPENT = [0.0]
+
+# Reasoning hybrids burn thinking tokens before the answer; disabling reasoning
+# (where the provider supports it) makes output length and cost predictable.
+DISABLE_REASONING = os.getenv("LLM_LABELER_DISABLE_REASONING") == "1"
+
 # Token budgets. Reasoning models burn thinking tokens before the answer, so
 # variants running a reasoning model need headroom or the JSON gets truncated.
 PLAN_MAX_TOKENS = int(os.getenv("LLM_LABELER_PLAN_TOKENS", "700"))
@@ -106,11 +117,18 @@ def call_llm(prompt: str, max_tokens: int = 700, max_retries: int = MAX_ATTEMPTS
     if backend == "openrouter":
         url = f"{OPENROUTER_BASE_URL}/chat/completions"
         extra = {}
+        if DISABLE_REASONING:
+            extra["reasoning"] = {"enabled": False}
     else:
         url = f"{GLM_BASE_URL}/chat/completions"
         extra = {"thinking": {"type": "disabled"}}
     last_err = None
     for attempt in range(max_retries):
+        if COST_CAP > 0:
+            with _SPENT_LOCK:
+                if _SPENT[0] >= COST_CAP:
+                    raise RuntimeError(
+                        f"cost cap ${COST_CAP:.2f} reached (spent ${_SPENT[0]:.2f})")
         try:
             res = requests.post(
                 url,
@@ -125,7 +143,10 @@ def call_llm(prompt: str, max_tokens: int = 700, max_retries: int = MAX_ATTEMPTS
                 timeout=120,
             )
             if res.status_code == 200:
-                return res.json()["choices"][0]["message"]["content"].strip()
+                body = res.json()
+                with _SPENT_LOCK:
+                    _SPENT[0] += float(body.get("usage", {}).get("cost") or 0.0)
+                return body["choices"][0]["message"]["content"].strip()
             last_err = f"HTTP {res.status_code}: {res.text[:150]}"
             if res.status_code not in (429, 500, 502, 503, 504):
                 break
