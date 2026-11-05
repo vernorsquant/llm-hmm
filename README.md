@@ -360,9 +360,20 @@ labeler (1.87) and FinBERT (2.04); their posteriors diverge from the 8b ones
 (OOS corr 0.48), so this is not a labeling-noise artifact. Every hybrid also
 lands below FinBERT alone (M13 vs M3 p = 0.80; M14 vs M3 p = 0.52; M13 vs M9
 p = 0.76; all Holm ≥ 0.77) — combining scorers adds no information over
-FinBERT by itself. The mechanism read stands: rubric decomposition recovers
-the same news signal FinBERT already provides, and scaling model size moves
-the labels *away* from the informative structure rather than adding edge.
+FinBERT by itself.
+
+**Why bigger models hurt (measured):** the big reasoning models compress
+scores toward neutral. Mean |avg rubric score| is 2.02 for llama-3.1-8b vs
+1.24 (deepseek-v4.1) and 1.23 (glm-5.3) — 72.7% of articles get a directional
+label (|avg| ≥ 1.5) from the 8b vs only 43% / 41% from the big models. The
+mechanism: stronger models weigh "already priced in" and multi-factor
+hedging, regressing the score toward 0 exactly where the prompt anchors
+neutral; the 8B cannot do that, so it scores raw tone. An HMM splits regimes
+on feature variance, so the compressed scores carry less regime information
+— the same effect behind the hybrid's failure (FinBERT features dominate the
+in-formation, so merging dilutes rather than adds). All three scorers have
+zero degenerate-fallback articles (n_criteria = 4.0 across the board), so
+this is a genuine model-behavior difference, not a pipeline artifact.
 The DeepSeek arm cost $0.50 of OpenRouter credit (cost-capped run; reasoning
 disabled for predictable output). The GLM arm ran on the z.ai plan.
 Tables: `labeler_variants_*.csv` (canonical/deepseek) and `*_glm.csv`
