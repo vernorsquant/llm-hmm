@@ -36,8 +36,14 @@ def main():
               if feat[feat.index < m].shape[0] >= 120]
     print(f"[ext-chart] {len(months)} monthly walk-forward refits x {len(MODELS)} models", flush=True)
 
-    curves = {"Buy & Hold SPY": bt.buy_and_hold(rets)}
-    sharpes = {"Buy & Hold SPY": perf_stats(curves["Buy & Hold SPY"])["sharpe"]}
+    curves = {}
+    sharpes = {}
+    # B&H must be scored on the SAME window as the switches (2017-02+ walk-forward
+    # period) — scoring it over the 2016-07 warmup-inclusive frame mismatched the
+    # comparison and inflated the headline B&H Sharpe (advisor round 1).
+    eval_start = months[0]
+    curves["Buy & Hold SPY"] = bt.buy_and_hold(rets).loc[eval_start:]
+    sharpes["Buy & Hold SPY"] = perf_stats(curves["Buy & Hold SPY"])["sharpe"]
     labels = {
         "M1_price_hmm": "Price-only HMM",
         "M3_finbert_hmm": "FinBERT sentiment HMM",

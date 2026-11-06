@@ -62,8 +62,13 @@ def fetch_market_data(start=FEATURE_START, end=EVAL_END, use_cache=True):
     df = df.dropna()
 
     for a in ("SPY", "IEF"):
-        df[f"{a}_ret"] = np.log(df[f"{a}_close"]).diff()
-    df["realized_vol"] = df["SPY_ret"].rolling(20).std() * np.sqrt(252)
+        # SIMPLE returns everywhere downstream: perf_stats compounds (1+r) as a
+        # simple-return product, and the switch strategies weight simple returns.
+        # Compounding log returns as simple returns understated annual returns in
+        # volatile years (B&H 2020 reported +11.7% vs true +18.3% — advisor round 1).
+        df[f"{a}_ret"] = df[f"{a}_close"].pct_change()
+    log_spy = np.log(df["SPY_close"]).diff()
+    df["realized_vol"] = log_spy.rolling(20).std() * np.sqrt(252)
     df = df.dropna()
 
     df.index.name = "Date"
