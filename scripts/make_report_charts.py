@@ -69,15 +69,15 @@ def chart_score_compression(cache, news, path):
 def chart_sharpe_all(path):
     """One master chart: OOS switch Sharpe for every configuration tested."""
     rows = [
-        ("M3 FinBERT sentiment", 2.04, "#2ca02c", "best overall"),
-        ("M13 Hybrid FinBERT+8b", 1.96, "#9467bd", "between parents"),
-        ("M15 DeepSeek PCA twin", 2.00, "#f2b134", ""),
-        ("M9 Labeler 8b", 1.87, "#17becf", "best labeler"),
-        ("M1 Price-only HMM", 1.82, "#7f7f7f", ""),
-        ("Buy & Hold SPY", 1.79, "black", ""),
-        ("M14 FinBERT+DeepSeek", 1.71, "#ff7f0e", ""),
-        ("M12 DeepSeek labeler", 1.58, "#d62728", "worst labeler"),
-        ("M12 GLM labeler", 1.53, "#8b0000", "worst labeler"),
+        ("M3 FinBERT sentiment", 2.10, "#2ca02c", "best overall"),
+        ("M13 Hybrid FinBERT+8b", 1.66, "#9467bd", "between parents"),
+        ("M15 DeepSeek PCA twin", 1.79, "#f2b134", ""),
+        ("M9 Labeler 8b", 1.93, "#17becf", "best labeler"),
+        ("M1 Price-only HMM", 1.61, "#7f7f7f", ""),
+        ("Buy & Hold SPY", 1.86, "black", ""),
+        ("M14 FinBERT+DeepSeek", 1.74, "#ff7f0e", ""),
+        ("M12 DeepSeek labeler", 1.45, "#d62728", "worst labeler"),
+        ("M12 GLM labeler", 1.56, "#8b0000", "worst labeler"),
     ]
     rows_sorted = sorted(rows, key=lambda r: r[1])
     names = [r[0] for r in rows_sorted]

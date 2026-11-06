@@ -15,7 +15,7 @@ traded the regimes. **FinBERT sentiment won every comparison.** Bigger LLMs made
 ![Every configuration tested](outputs/figures/labeler_sharpe_all_models.png)
 
 *OOS walk-forward regime switch, 2023, net of 5 bps. All pairwise differences statistically
-indistinguishable (n = 250 days, MDE 0.32–1.88) — but the ordering is consistent in-sample
+indistinguishable (n = 250 days, MDE 0.32–1.85) — but the ordering is consistent in-sample
 and out-of-sample, and reproduces across two independent big-model families.*
 
 ## What we tested
@@ -41,13 +41,17 @@ backend + model + pipeline version.
 
 | OOS switch Sharpe (2023, net 5 bps) | DeepSeek arm | GLM arm |
 |---|---|---|
-| M3 FinBERT sentiment | **2.04** | **2.04** |
-| M13 Hybrid FinBERT + 8b labeler | 1.96 | 1.96 |
-| M9 Labeler 8b | 1.87 | 1.87 |
-| M1 price-only HMM | 1.82 | 1.82 |
-| Buy & Hold SPY | 1.79 | 1.79 |
-| M14 FinBERT + deepseek hybrid | 1.71 | 1.64 |
-| M12 deepseek labeler | 1.58 | 1.53 |
+| M3 FinBERT sentiment | **2.10** | **2.10** |
+| M13 Hybrid FinBERT + 8b labeler | 1.66 | 1.66 |
+| M9 Labeler 8b | 1.93 | 1.93 |
+| M1 price-only HMM | 1.61 | 1.61 |
+| Buy & Hold SPY | 1.86 | 1.86 |
+| M14 FinBERT + deepseek hybrid | 1.74 | 1.64 |
+| M12 deepseek labeler | 1.45 | 1.56 |
+
+Significance (JK-Memmel + block bootstrap, Holm across the pre-registered 5-pair
+family): **nothing survives** — M9 vs M3 p = 0.14 (Holm 0.69), M9 vs M1 p = 0.63,
+M9 vs B&H p = 0.75, MDE 0.32–1.85 Sharpe at 80% power.
 
 ## Why the big models lost
 
@@ -69,7 +73,7 @@ Daily labeler scores correlate with FinBERT at **r = 0.58**; the labeler's regim
 posteriors at **0.86 in-sample / 0.81 OOS**. Rubric decomposition recovers the tone signal
 FinBERT already provides — averaging four LLM-scored criteria doesn't add information, it
 adds cost. The hybrids confirm it: combining FinBERT + labeler features lands **between**
-the two parents (1.96), never ahead (M13 vs M3 p = 0.80).
+the two parents (1.66), never ahead (M13 vs M3 p = 0.30).
 
 ---
 
@@ -96,20 +100,20 @@ Corpus extended to **~15,000 articles across 2017-01 → 2026-11** (10 years,
 
 | OOS switch Sharpe (2017–2026, net 5 bps) | Value |
 |---|---|
-| M1 price-only HMM | 0.50 |
-| M3 FinBERT | 0.44 |
-| M5 VADER | 0.36 |
-| Buy & Hold SPY | 0.81 |
-| M12 deepseek labeler / M13 hybrid | 1.58 / 1.96 (2023-only, not comparable) |
+| M1 price-only HMM | 0.48 |
+| M3 FinBERT | 0.42 |
+| M5 VADER | 0.32 |
+| Buy & Hold SPY | 0.84 |
+| M12 deepseek labeler / M13 hybrid | 1.45 / 1.66 (2023-only, not comparable) |
 
-- **FinBERT vs VADER: +0.09 Sharpe, JK p = 0.66, Holm 1.0** — statistically zero
-  even at 2,454 days (MDE 0.51). Scorer sophistication is second-order, confirmed
+- **FinBERT vs VADER: +0.10 Sharpe, JK p = 0.61, Holm 1.0** — statistically zero
+  even at 2,454 days (MDE 0.52). Scorer sophistication is second-order, confirmed
   with power.
 - FinBERT is slightly better where it matters (stress F1 0.47 vs 0.42 vs VADER),
   but the difference is inside noise.
 - **Nothing beats buy-and-hold** over the full window: every news-switch variant
   underperforms B&H in point estimates. In this 10-year window the price-only
-  HMM (0.50) also *beats* both sentiment HMMs — the 2023 in-sample ordering
+  HMM (0.48) also *beats* both sentiment HMMs — the 2023 in-sample ordering
   (FinBERT > price-only) does not survive out-of-sample refits.
 - Disclosures: approximate (not exact) FOMC/CPI event windows; importance
   ratings skipped (unused under unweighted aggregation); 2017–2019 GDELT
@@ -120,9 +124,13 @@ Tables: `extended_zoo.csv`, `extended_significance.csv`, `extended_yearly.csv`,
 
 ## Honest caveats
 
-- n = 250 trading days → minimum detectable effect is 0.32–1.88 Sharpe. "Not significant"
+- n = 250 trading days → minimum detectable effect is 0.32–1.85 Sharpe. "Not significant"
   means *unproven*, not *proven equal* — but "big models worse" replicates across two
-  independent model families, in-sample and OOS.
+  independent model families, in-sample and OOS. Over the 2,454-day extended window the
+  MDE is still 0.48–1.10.
+- Annual returns are computed on a simple-return basis (corrected 2026-11-05; the
+  original log-return compounding understated volatile-year returns, e.g. B&H 2020
+  reported +11.7% vs true +18.3%).
 - Corpus = hindsight-selected 2023 event windows + routine days (identical for every
   scorer, so the A/B is fair; absolute vs-B&H claims inherit the event-densified timing).
 - All sentiment models missed the SVB crash entirely (stress F1 = 0.0 vs price-HMM 0.55).

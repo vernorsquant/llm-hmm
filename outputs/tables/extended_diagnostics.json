@@ -1,15 +1,15 @@
 {
   "window": [
     "2017-02-01",
-    "2026-11-04"
+    "2026-11-05"
   ],
-  "n_days": 2454,
+  "n_days": 2455,
   "n_months_walkforward": 118,
   "finbert_vader_daily_corr": 0.4906,
   "stress_f1_vix25": {
     "M1_price_hmm": 0.458,
-    "M3_finbert_hmm": 0.466,
-    "M5_vader_hmm": 0.415
+    "M3_finbert_hmm": 0.465,
+    "M5_vader_hmm": 0.412
   },
   "importance_ratings_skipped": true
 }

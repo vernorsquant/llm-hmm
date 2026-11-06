@@ -3,15 +3,15 @@
   "small_model": "meta-llama/llama-3.1-8b-instruct",
   "labeler_version": 2,
   "coverage": {
-    "lbl8": 0.9995276334435522,
+    "lbl8": 1.0,
     "lblbig": 1.0
   },
   "posterior_corr_oos": {
-    "M12_lblbig_hmm::M9_lbl_hmm": 0.4722,
-    "M12_lblbig_hmm::M3_sent_hmm": 0.4739,
-    "M13_hybrid_hmm::M3_sent_hmm": 0.515,
-    "M13_hybrid_hmm::M9_lbl_hmm": 0.5718,
-    "M14_hybridbig_hmm::M13_hybrid_hmm": 0.5474
+    "M12_lblbig_hmm::M9_lbl_hmm": 0.4562,
+    "M12_lblbig_hmm::M3_sent_hmm": 0.4578,
+    "M13_hybrid_hmm::M3_sent_hmm": 0.5247,
+    "M13_hybrid_hmm::M9_lbl_hmm": 0.5868,
+    "M14_hybridbig_hmm::M13_hybrid_hmm": 0.7223
   },
   "svb_lead_days": {
     "M1_price_hmm": 0,
@@ -24,7 +24,7 @@
     "M16_hybrid_pca_hmm": null
   },
   "stress_f1_vix25": {
-    "M1_price_hmm": 0.545,
+    "M1_price_hmm": 0.207,
     "M3_sent_hmm": 0.0,
     "M9_lbl_hmm": 0.0,
     "M12_lblbig_hmm": 0.0,
