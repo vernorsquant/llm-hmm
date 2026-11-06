@@ -1,6 +1,7 @@
 """Market data ingestion: SPY, IEF (yfinance, adjusted) and VIX (CBOE CSV).
 
-Produces a trading-day-aligned frame with log returns and 20-day realized vol.
+Produces a trading-day-aligned frame with simple returns, a log-based 20-day
+realized vol, VIX, SPY and IEF closes.
 """
 
 import io

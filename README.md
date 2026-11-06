@@ -50,7 +50,7 @@ backend + model + pipeline version.
 | M12 deepseek labeler | 1.45 | 1.56 |
 
 Significance (JK-Memmel + block bootstrap, Holm across the pre-registered 5-pair
-family): **nothing survives** — M9 vs M3 p = 0.14 (Holm 0.69), M9 vs M1 p = 0.63,
+family): **nothing survives** — M9 vs M3 p = 0.14 (Holm 0.69), M9 vs M1 p = 0.62,
 M9 vs B&H p = 0.75, MDE 0.32–1.85 Sharpe at 80% power.
 
 ## Why the big models lost
@@ -96,7 +96,7 @@ the two parents (1.66), never ahead (M13 vs M3 p = 0.30).
 ![Extended window](outputs/figures/extended_window_finbert_vs_vader.png)
 
 Corpus extended to **~15,000 articles across 2017-01 → 2026-11** (10 years,
-2,454 trading days, 118 monthly walk-forward refits). Answer: **no.**
+2,455 trading days, 118 monthly walk-forward refits). Answer: **no.**
 
 | OOS switch Sharpe (2017–2026, net 5 bps) | Value |
 |---|---|
@@ -109,7 +109,7 @@ Corpus extended to **~15,000 articles across 2017-01 → 2026-11** (10 years,
 - **FinBERT vs VADER: +0.10 Sharpe, JK p = 0.61, Holm 1.0** — statistically zero
   even at 2,454 days (MDE 0.52). Scorer sophistication is second-order, confirmed
   with power.
-- FinBERT is slightly better where it matters (stress F1 0.47 vs 0.42 vs VADER),
+- FinBERT is slightly better where it matters (stress F1 0.46 vs 0.41 vs VADER),
   but the difference is inside noise.
 - **Nothing beats buy-and-hold** over the full window: every news-switch variant
   underperforms B&H in point estimates. In this 10-year window the price-only
