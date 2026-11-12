@@ -1,0 +1,5 @@
+Model,Feature,Slope (β),Intercept (α),R²,p-value,MSE (%²),R² (5-fold CV)
+Linear Regression,BSM (LLM-Labeler),0.1399,0.1401,0.0009,0.6461,0.6768,
+Linear Regression,FinBERT Sentiment,0.1927,0.1302,0.0039,0.3286,0.6748,
+Random Forest,BSM (LLM-Labeler),N/A (Non-linear),N/A,,N/A,0.6318,-0.0582
+Random Forest,FinBERT Sentiment,N/A (Non-linear),N/A,,N/A,0.6154,-0.0279
